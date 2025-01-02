@@ -35,7 +35,7 @@ data = {
   "messages": [
     {
       "role": "user",
-      "content": user_input_2
+      "content": user_input_1
     }
   ],
   "stream": False
