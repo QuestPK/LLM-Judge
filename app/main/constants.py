@@ -22,7 +22,7 @@ Here is the scale you should use to build your answer:
 4: The [current] is excellent: Means completely same as the [baseline], captures the semanctics and is 100% correct.
 
 Provide the scoring in the string json format and nothing else:
-{"Total rating:": <integer 1-4>}
+{"Total rating": <integer 1-4>}
 
 Now user will provide the [baseline] and [current] couple.
 """

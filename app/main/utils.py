@@ -1,4 +1,6 @@
+import json
 import requests
+from pprint import pprint
 
 from .constants import (
     LOCAL_HOST_URL,
@@ -22,7 +24,7 @@ def retrieve_response_from_endpoint(data: dict) -> dict:
     try:
         headers = {'Content-Type': 'application/json'}
 
-        print(f"Sending request to {LOCAL_HOST_URL} with data: {data.keys()}")
+        print(f"Sending request to {LOCAL_HOST_URL} with data: {data.keys()} and model: {MODEL_NAME}")
 
         response = requests.post(LOCAL_HOST_URL, json=data, headers=headers)
         response.raise_for_status()  # Raises HTTPError for bad responses (4xx or 5xx)
@@ -74,4 +76,15 @@ def get_response_from_llm(messages: list) -> str:
         # Add context to the exception
         raise Exception(f"Failed to get response from LLM: {e}") from e
 
-    return response
+    print("\nResults:")
+    pprint(response)
+    
+    try:
+        result = json.loads(response.get("message", {}).get("content", ""))
+    except json.JSONDECODEError as e:
+        print("Issue decoding JSON response:", e)
+        result = response.get("message", {}).get("content", "")
+ 
+    result = result.get("Total rating", 0)
+    
+    return result

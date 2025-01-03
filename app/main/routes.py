@@ -1,6 +1,5 @@
-from pprint import pprint
-
 from flask import Blueprint, render_template, jsonify, request
+from flasgger import Swagger
 from .utils import get_response_from_llm
 
 main_bp = Blueprint('main', __name__)
@@ -25,13 +24,12 @@ def chat():
         # Call the LLM endpoint and get the response
         results = get_response_from_llm(messages)
 
-        # Print the results for debugging purposes
-        print("\nResults:")
-        pprint(results)
+        print("\nOutput: ", results)
 
         # Return the response in JSON format
         return {
-            "response" : results
+            "response" : results,
+            "message" : "Score"
         }
     except Exception as e:
         # Print the error for debugging purposes
@@ -40,3 +38,17 @@ def chat():
         return jsonify({'error': str(e)}), 500
 
 
+# {
+#     "messages": [
+#         {
+#             "role": "user",
+#             "content": user_message
+#         },
+# }
+
+# succuss = {
+#     "response" :str
+# }
+# error = {
+#     "error": str
+# }
