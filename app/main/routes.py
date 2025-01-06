@@ -10,6 +10,30 @@ def home():
 
 @main_bp.route('/chat', methods=['POST'])
 def chat():
+    """
+    Example API Input/Output:
+
+    Input:
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": "Your message here"
+            }
+        ]
+    }
+
+    Successful Response:
+    {
+        "response": "Scoring Result",
+        "message": "Score"
+    }
+
+    Error Response:
+    {
+        "error": "Error message detailing what went wrong"
+    }
+    """
     # Get the data from the request
     data = request.get_json()
 
@@ -38,17 +62,5 @@ def chat():
         return jsonify({'error': str(e)}), 500
 
 
-# {
-#     "messages": [
-#         {
-#             "role": "user",
-#             "content": user_message
-#         },
-# }
 
-# succuss = {
-#     "response" :str
-# }
-# error = {
-#     "error": str
-# }
+
