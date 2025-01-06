@@ -5,7 +5,9 @@ from pprint import pprint
 from .constants import (
     LOCAL_HOST_URL,
     MODEL_NAME,
-    SYSTEM_PROMPT
+)
+from .prompts import (
+    SYSTEM_PROMPT,
 )
 
 def retrieve_response_from_endpoint(data: dict) -> dict:
