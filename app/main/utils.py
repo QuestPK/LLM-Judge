@@ -44,26 +44,33 @@ def retrieve_response_from_endpoint(data: dict) -> dict:
         # Handle other exceptions
         raise RuntimeError(f"An error occurred: {e}") from e
 
-def get_response_from_llm(messages: list) -> str:
+def get_response_from_llm(baseline: str, current: str, summary_accepted: bool) -> str:
     """
-    Formats messages and retrieves a response from the LLM endpoint.
+    Get the score from the LLM.
 
     Args:
-        messages (list): List of message dictionaries for the LLM.
+        baseline (str): The baseline string to evaluate against.
+        current (str): The current string to score against the baseline.
+        summary_accepted (bool): Whether the summary is accepted or not (not used).
 
     Returns:
-        str: The response from the LLM.
+        str: The response/score from the LLM, containing the score as a string (e.g. '3').
 
     Raises:
         Exception: If the endpoint returns an error or response processing fails.
     """
-    system_message = {
-        "role": "system",
-        "content": SYSTEM_PROMPT
-    }
+    user_message_str = f"baseline: {baseline}\ncurrent: {current}"
 
-    # Ensure the system message is added at the beginning of the messages list
-    messages.insert(0, system_message)
+    messages = [
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT
+        },
+        {
+            "role": "user",
+            "content": user_message_str
+        }
+    ]
 
     data = {
         "model": MODEL_NAME,

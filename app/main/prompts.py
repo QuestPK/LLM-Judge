@@ -1,3 +1,6 @@
+summary_accepted_prompt = """
+"""
+
 SYSTEM_PROMPT = """\
 You are a scoring assistant who has been tasked to evaluate the relevancy between [baseline] and [current] strings. You will be given a [baseline] and [current] couple and you have to score based on the provided criteria.
 

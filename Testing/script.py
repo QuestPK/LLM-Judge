@@ -36,7 +36,7 @@ Instructions:
 
 Give your answer on a scale of 1 to 4, where 1 means that the [current] is not relevant at all, and 4 means that the [current] is completely relevant with the [baseline].
 
-By relevancy: we mean that the [current] should contain the same meaning of the [baseline].
+Meaning of relevancy: The [current] should contain the same meaning of the [baseline], or the summary of the [baseline].
 
 Here is the scale you should use to build your answer:
 1: The [current] is terrible: completely irrelevant to the [baseline], or very partial.
