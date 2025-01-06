@@ -1,7 +1,7 @@
 # LLM-Judge
 
 ## Prerequisites
-- Ensure that `ollama` is model is running.
+- Ensure that `qwen2.5:14b` is model is running.
 
 ## Installation
 1. Install the required dependencies:

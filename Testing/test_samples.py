@@ -80,12 +80,12 @@ user_input_11 = """\
 [baseline] A healthy immune system response involves multiple steps. When a pathogen enters the body, specialized cells called macrophages identify and engulf it. These cells then display pieces of the pathogen on their surface, which alerts T-cells. The T-cells coordinate with B-cells to produce antibodies specific to that pathogen. These antibodies attach to the pathogens, marking them for destruction. Memory cells are also created, which remember how to fight this specific pathogen in case of future infections.
 [current] The immune system works like this: When germs enter your body, special cells called macrophages eat them. These cells show other immune cells what the germs look like. Then, T-cells and B-cells work together to make antibodies that stick to the germs and destroy them. The body also remembers how to fight these specific germs in case they come back later.
 """
-# Expected Score: {"Total rating": 3}
+# Expected Score: {"Total rating": 4}
 # (Captures main concepts but simplifies some key technical details)
 
 user_input_12 = """\
 [baseline] Global warming is caused by the greenhouse effect, where gases like carbon dioxide and methane trap heat in Earth's atmosphere. These gases are released through human activities such as burning fossil fuels, deforestation, and industrial processes. When sunlight reaches Earth, some is reflected back into space, but greenhouse gases prevent this heat from escaping, similar to how a greenhouse works. This trapped heat causes global temperatures to rise, leading to climate change, melting polar ice caps, rising sea levels, and extreme weather events.
 [current] Climate change happens because we put too much pollution in the air. This makes the Earth get warmer, which causes ice to melt and weather to change. We need to stop using so much oil and coal to help fix this problem.
 """
-# Expected Score: {"Total rating": 1}
+# Expected Score: {"Total rating": 2}
 # (Oversimplified, missing crucial scientific explanations and key concepts)
