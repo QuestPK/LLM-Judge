@@ -95,7 +95,7 @@ def check_if_summary(baseline: str, current: str):
 
     return is_summary
 
-def get_score_from_llm(baseline: str, current: str) -> str:
+def get_score_from_llm(baseline: str, current: str) -> dict:
     """
     Get the score from the LLM.
 
@@ -149,9 +149,15 @@ def get_score_from_llm(baseline: str, current: str) -> str:
         raise Exception("Failed to decode JSON response" + str(e))
  
     total_rating = result.get("Total rating", 0)
-    print("Total rating: ", total_rating)
+    reason = result.get("Reason", "")
 
-    return total_rating
+    print("\n\nTotal rating: ", total_rating)
+    print("Reason: ", reason)
+
+    return {
+        "score": total_rating,
+        "reason": reason
+    }
 
 def get_score_data(baseline: str, current: str, summary_accepted: bool) -> dict:
     """ 
@@ -164,7 +170,7 @@ def get_score_data(baseline: str, current: str, summary_accepted: bool) -> dict:
         str: The response/score from the LLM, containing the score as a string (e.g. '3').
 
     """
-    score = get_score_from_llm(baseline, current)
+    score_data = get_score_from_llm(baseline, current)
 
     if not summary_accepted:
         is_summary = check_if_summary(baseline, current)
@@ -172,11 +178,10 @@ def get_score_data(baseline: str, current: str, summary_accepted: bool) -> dict:
         if is_summary:
             return { 
                 "score": 0,
-                "reason": "We found summary in the string. Score needs an update."
+                "reason": "We found summary in the string. Score updated."
             }
 
     return {
-        
-        "score": score,
-        "reason": ""
+        "score": score_data.get("score", 0),
+        "reason": score_data.get("reason", "")
     }

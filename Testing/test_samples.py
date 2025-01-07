@@ -34,7 +34,7 @@ user_input_4 = """\
 #  Expected Score: {"Total rating": 3}
 # (Perfect match with complete accuracy)
 
-user_input_5 = """:
+user_input_5 = """\
 [baseline] List three primary colors.
 [current] List down the top 3 colors.
 """
