@@ -34,7 +34,7 @@ user_input_4 = """\
 #  Expected Score: {"Total rating": 3}
 # (Perfect match with complete accuracy)
 
-user_input_5 = """:
+user_input_5 = """\
 [baseline] List three primary colors.
 [current] List down the top 3 colors.
 """
@@ -52,7 +52,7 @@ user_input_7 = """\
 [baseline] What causes rain?
 [current] Rain happens when water vapor in clouds condenses and becomes too heavy to stay in the air.
 """
-# Expected Score: {"Total rating": 4}
+# Expected Score: {"Total rating": 2}
 # (Complete and accurate explanation)
 
 user_input_8 = """\
@@ -64,7 +64,7 @@ user_input_8 = """\
 
 user_input_9 = """\
 [baseline] The process of photosynthesis in plants involves multiple steps. First, plants absorb sunlight through chlorophyll in their leaves. Then, they take in carbon dioxide through tiny pores called stomata. The plant uses these ingredients, along with water absorbed through its roots, to create glucose. During this process, oxygen is released as a byproduct through the stomata. The glucose can either be used immediately for energy or stored as starch for later use.
-[current] Photosynthesis is how plants make their own food. Plants need sunlight which they capture using chlorophyll, and they also need carbon dioxide and water. Through a complex chemical process, they convert these ingredients into glucose for energy, while releasing oxygen into the air. The glucose can be used right away or stored for later. This process happens in the leaves through small holes called stomata.
+[current] Photosynthesis in plants involves several steps: sunlight is absorbed by chlorophyll in the leaves, and carbon dioxide enters through stomata. The plant combines these with water from the roots to produce glucose. Oxygen is released as a byproduct through the stomata. The glucose is used for energy or stored as starch for future use.
 """
 # Expected Score: {"Total rating": 4}
 # (Covers all key points with accurate information and proper sequence)
