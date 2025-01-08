@@ -95,7 +95,7 @@ def check_if_summary(baseline: str, current: str):
 
     return is_summary
 
-def get_score_from_llm(baseline: str, current: str) -> dict:
+def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
     """
     Get the score from the LLM.
 
@@ -111,7 +111,7 @@ def get_score_from_llm(baseline: str, current: str) -> dict:
         Exception: If the endpoint returns an error or response processing fails.
     """
 
-    user_message_str = f"baseline: {baseline}\ncurrent: {current}"
+    user_message_str = f"question: {question}\nbaseline: {baseline}\ncurrent: {current}"
 
     system_prompt = SYSTEM_PROMPT
 
@@ -159,7 +159,7 @@ def get_score_from_llm(baseline: str, current: str) -> dict:
         "reason": reason
     }
 
-def get_score_data(baseline: str, current: str, summary_accepted: bool) -> dict:
+def get_score_data(question: str, baseline: str, current: str, summary_accepted: bool) -> dict:
     """ 
     Args:
         baseline (str): The baseline string to evaluate against.
@@ -170,7 +170,7 @@ def get_score_data(baseline: str, current: str, summary_accepted: bool) -> dict:
         str: The response/score from the LLM, containing the score as a string (e.g. '3').
 
     """
-    score_data = get_score_from_llm(baseline, current)
+    score_data = get_score_from_llm(question, baseline, current)
 
     if not summary_accepted:
         is_summary = check_if_summary(baseline, current)

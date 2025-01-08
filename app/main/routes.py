@@ -15,6 +15,7 @@ def get_score() -> dict:
 
     Input:
     {
+        "question": "question string",
         "baseline": "baseline string",
         "current": "current string",
         "summary_accepted": true
@@ -37,15 +38,17 @@ def get_score() -> dict:
     if data is None:
         return jsonify({'error': 'No valid JSON data found in the request.'}), 400
 
+    question = data.get("question", "")
     baseline = data.get("baseline", "")
     current = data.get("current", "")
     summary_accepted = data.get("summary_accepted", False)
 
-    if not baseline or not current:
+    if not baseline or not current or not question:
         return jsonify({'error': 'Baseline or Current missing.'}), 400
     
     try:
         score_data = get_score_data(
+            question=question,
             baseline=baseline,
             current=current,
             summary_accepted=summary_accepted
