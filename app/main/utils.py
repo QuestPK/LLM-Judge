@@ -10,6 +10,9 @@ from .prompts import (
     SYSTEM_PROMPT,
     SUMMARY_CHECK_PROMPT
 )
+from .queues import (
+        QueueManager
+)
 
 def retrieve_response_from_endpoint(data: dict) -> dict:
     """
@@ -72,7 +75,8 @@ def check_if_summary(baseline: str, current: str):
     data = {
         "model": MODEL_NAME,
         "messages": messages,
-        "stream": False
+        "stream": False,
+        "keep_alive": "30m",
     }   
 
     try:
@@ -129,7 +133,8 @@ def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
     data = {
         "model": MODEL_NAME,
         "messages": messages,
-        "stream": False
+        "stream": False,
+        "keep_alive": "30m",
     }
 
     try:
@@ -185,3 +190,59 @@ def get_score_data(question: str, baseline: str, current: str, summary_accepted:
         "score": score_data.get("score", 0),
         "reason": score_data.get("reason", "")
     }
+
+def get_score_data_temp(question: str, baseline: str, current: str, summary_accepted: bool):
+    import time
+    time.sleep(5)
+
+    return {
+        "score": 10,
+        "reason": "No reason"
+    }
+def process_items(items_list: list[dict]) -> list[dict]:
+    """
+    Process the items in the list and return the scores.
+
+    Args:
+        items_list (list[dict]): The list of items to process.
+
+    Returns:
+        list[dict]: The list of scores for each item.
+    """
+    scores_retrieved = {}
+
+    for item in items_list:
+        print("Processing item")
+        print(item, end='\n\n')
+
+        query_id = list(item.keys())[0]
+
+        query_data = item.get(query_id, {})
+
+        question = query_data.get("question", "")
+        baseline = query_data.get("baseline", "")
+        current = query_data.get("current", "")
+        summary_accepted = item.get("summary_accepted", False)
+
+        score_data = get_score_data_temp(question, baseline, current, summary_accepted)
+
+        scores_retrieved[query_id] = score_data
+
+    return scores_retrieved
+
+def get_scores_for_queries(queries_list: list[dict], queue_mananager: QueueManager) -> list[dict]:
+    # all_query_ids = [list(item.keys())[0] for item in items_list]
+    scores_data = {} 
+
+    while(queue_mananager.get_items_to_process()):
+        
+        scores_data.update(process_items(queries_list))
+
+        query_ids = [item for item in queries_list]
+        if query_ids == list(scores_data.keys()):
+            break
+
+    return scores_data
+
+    
+
