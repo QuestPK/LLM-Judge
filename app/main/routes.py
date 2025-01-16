@@ -71,7 +71,7 @@ def get_score() -> dict:
         return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/get-score-for-queries', methods=['POST'])
-async def get_score_for_queries() -> dict:
+def get_score_for_queries() -> dict:
     """
     Example API Input/Output:
 
@@ -115,12 +115,11 @@ async def get_score_for_queries() -> dict:
         not queries_data:
         return jsonify({'error': 'No queries data found in the request.'}), 400
     
-    print("Total Queues: ", queue_manager.get_total_queues())
-    if queue_manager.get_total_queues() > 0:
+    print("Total Queues: ", queue_manager.get_total_queues(), end='\n')
+    if queue_manager.get_total_queues() > 1:
         return jsonify({
             "error" : "Queue Full"
         })
-    
     
     # pprint(queries_data)
 
@@ -128,15 +127,18 @@ async def get_score_for_queries() -> dict:
 
     queue_manager.display_all_items()
 
-    scores_data = await get_scores_for_queries(
+    scores_data = get_scores_for_queries(
         queries_list=queries_data,
-        queue_mananager=queue_manager
+        queue_manager=queue_manager
     )
+
+    print("\nTotal Queues: ", queue_manager.get_total_queues(), end='\n')
+    queue_manager.display_all_items()
     
     print("\nScores data")
     pprint(scores_data)
 
     return jsonify({
         # "scores_data": scores_data
-        "scores_data": "Hi"
+        "scores_data": scores_data
     })

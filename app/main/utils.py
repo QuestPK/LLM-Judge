@@ -1,6 +1,8 @@
 import json
 import requests
 from pprint import pprint
+from typing import List, Dict
+import concurrent.futures
 
 from .constants import (
     LOCAL_HOST_URL,
@@ -144,8 +146,8 @@ def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
         # Add context to the exception
         raise Exception(f"Failed to get response from LLM: {e}") from e
 
-    print("\nResults:")
-    pprint(response)
+    # print("\nResults:")
+    # pprint(response)
     
     try:
         result = json.loads(response.get("message", {}).get("content", ""))
@@ -191,7 +193,14 @@ def get_score_data(question: str, baseline: str, current: str, summary_accepted:
         "reason": score_data.get("reason", "")
     }
 
-def get_score_data_temp(question: str, baseline: str, current: str, summary_accepted: bool):
+# temp function for testing
+def get_score_data_temp(question: str, baseline: str, current: str, summary_accepted: bool) -> dict:
+    print("\nCalculating score...")
+    print("Question: ", question)
+    # print("Baseline: ", baseline)
+    # print("Current: ", current)
+    # print("Summary Accepted: ", summary_accepted)
+
     import time
     time.sleep(5)
 
@@ -199,47 +208,108 @@ def get_score_data_temp(question: str, baseline: str, current: str, summary_acce
         "score": 10,
         "reason": "No reason"
     }
-def process_items(items_list: list[dict]) -> list[dict]:
+
+def process_single_item(item: dict) -> dict:
     """
-    Process the items in the list and return the scores.
+    Process a single item to retrieve the score.
 
     Args:
-        items_list (list[dict]): The list of items to process.
+        item (dict): The item to process.
 
     Returns:
-        list[dict]: The list of scores for each item.
+        dict: The score for the item.
+    """
+    query_id = list(item.keys())[0]
+    query_data = item.get(query_id, {})
+
+    question = query_data.get("question", "")
+    baseline = query_data.get("baseline", "")
+    current = query_data.get("current", "")
+    summary_accepted = query_data.get("summary_accepted", False)
+
+    score_data = get_score_data_temp(question, baseline, current, summary_accepted)
+    # score_data = get_score_data(question, baseline, current, summary_accepted)
+
+    return {query_id: score_data}
+
+def process_items(items_list: list[dict]) -> dict:
+    """
+    Process the items in the list using multiprocessing and return the scores.
+
+    Args:
+        items_list (List[dict]): The list of items to process.
+
+    Returns:
+        Dict[str, dict]: The scores for each item.
     """
     scores_retrieved = {}
 
-    for item in items_list:
-        print("Processing item")
-        print(item, end='\n\n')
+    # test seq processing
+    # results = []
+    # for item in items_list:
+    #     results.append(process_single_item(item))
 
-        query_id = list(item.keys())[0]
+    with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(process_single_item, items_list))
 
-        query_data = item.get(query_id, {})
-
-        question = query_data.get("question", "")
-        baseline = query_data.get("baseline", "")
-        current = query_data.get("current", "")
-        summary_accepted = item.get("summary_accepted", False)
-
-        score_data = get_score_data_temp(question, baseline, current, summary_accepted)
-
-        scores_retrieved[query_id] = score_data
+    for result in results:
+        scores_retrieved.update(result)
 
     return scores_retrieved
 
-def get_scores_for_queries(queries_list: list[dict], queue_mananager: QueueManager) -> list[dict]:
-    # all_query_ids = [list(item.keys())[0] for item in items_list]
-    scores_data = {} 
+def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager) -> Dict[str, dict]:
+    """
+    Retrieve scores for a list of queries using the provided queue manager.
 
-    while(queue_mananager.get_items_to_process()):
+    Args:
+        queries_list (List[dict]): A list of dictionaries where each dictionary
+            contains the query ID and associated data, including the question,
+            baseline, current response, and whether the summary is accepted.
+            
+            Example format:
+            [
+                {"query_id": {
+                        "question": "question string",
+                        "baseline": "baseline string",
+                        "current": "current string",
+                        "summary_accepted": true
+                    },
+                },
+                ...
+            ]
+
+        queue_manager (QueueManager): An instance of QueueManager used to manage
+            and process the queries.
+
+    Returns:
+        Dict[str, dict]: A dictionary mapping each query ID to its respective
+        scoring result and associated details.
+    """
+    scores_data = {}
+    
+    while True:
+        items = queue_manager.get_items_to_process()
+        queue_manager.delete_empty_queues()
+
+        # No items to process
+        if not items:
+            break
         
-        scores_data.update(process_items(queries_list))
+        # process the retreived items
+        scores = process_items(items)
 
-        query_ids = [item for item in queries_list]
+        # add the scores
+        scores_data.update(scores)
+
+        query_ids = [list(item.keys()) for item in queries_list][0]
+        
+        
+        # if all queries scores have been retrieved
+        print("query id ",query_ids)
+        print("scores data ", list(scores_data.keys()))
+
         if query_ids == list(scores_data.keys()):
+            print("Breaking...")
             break
 
     return scores_data
