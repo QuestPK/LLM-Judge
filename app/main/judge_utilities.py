@@ -166,6 +166,12 @@ def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
         "reason": reason
     }
 
+def get_score_from_llm_temp(question: str, baseline: str, current: str):
+    
+    return {
+        "score": 0,
+        "reason": "Dummmy reason"
+    }
 def get_score_data(question: str, baseline: str, current: str, summary_accepted: bool) -> dict:
     """ 
     Args:
@@ -177,9 +183,9 @@ def get_score_data(question: str, baseline: str, current: str, summary_accepted:
         str: The response/score from the LLM, containing the score as a string (e.g. '3').
 
     """
-    score_data = get_score_from_llm(question, baseline, current)
+    score_data = get_score_from_llm_temp(question, baseline, current)
 
-    if not summary_accepted:
+    if not summary_accepted and False:
         is_summary = check_if_summary(baseline, current)
 
         if is_summary:
@@ -305,14 +311,15 @@ def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager
         
         
         # if all queries scores have been retrieved
-        print("query id ",query_ids)
-        print("scores data ", list(scores_data.keys()))
+        print("Query ids ",query_ids)
+        print("Scores data keys ", list(scores_data.keys()))
 
         if query_ids == list(scores_data.keys()):
             print("Breaking...")
             break
-
+        
+        # import time
+        # time.sleep(2)
     return scores_data
 
     
-

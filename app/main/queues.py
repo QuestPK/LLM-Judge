@@ -5,12 +5,11 @@ import threading
 class QueueManager:
     def __init__(self):
         self.queues = []
-        self.current_queue = 0
+        self.current_queue = -1
         self.lock = threading.Lock()
 
     def display_all_items(self):
         """Display all items in all queues."""
-        # with self.lock:
         if self.queues:
             for queue in self.queues:
                 queue_data = list(queue.queue)
@@ -23,7 +22,6 @@ class QueueManager:
             
     def get_total_queues(self) -> int:
         """Get the total number of queues."""
-        # with self.lock:  # Locking for consistent read
         return len(self.queues)
     
     def get_n_items_from_queue(self, queue: Queue, n: int = 2):
@@ -40,10 +38,8 @@ class QueueManager:
     
     def get_items_to_process(self) -> list[dict]:
         """Get items to process from the queue manager."""
-        # with self.lock:  # Locking the method to prevent race conditions
-
-        print("\nCurrent Queue: ", self.current_queue)
-        print("Number of Queues: ", len(self.queues))
+        # print("\nCurrent Queue: ", self.current_queue)
+        # print("Number of Queues: ", len(self.queues))
 
         items = []
         if len(self.queues) == 0:
@@ -64,7 +60,6 @@ class QueueManager:
     
     def insert(self, queue: Queue):
         """Insert a queue into the queue manager."""
-        # with self.lock:  # Ensure atomic insert operation
         self.queues.append(queue)
 
     def create_and_insert_queries(self, items_list: list[dict]):
@@ -80,13 +75,11 @@ class QueueManager:
     
     def reset_counter(self):
         """Reset the current queue counter to 0 if it exceeds the number of queues."""
-        # with self.lock:  # Ensures the counter reset is thread-safe
         if self.current_queue >= len(self.queues):
             self.current_queue = 0
 
     def delete_empty_queues(self):
         """Delete empty queues from the queue manager."""
-        # with self.lock:  # Ensure thread-safe deletion of empty queues
         self.queues = [q for q in self.queues if not q.empty()]
         if self.current_queue >= len(self.queues):
             self.current_queue = 0 if self.queues else -1  # Adjust for empty list

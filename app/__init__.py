@@ -1,10 +1,16 @@
 from flask import Flask
-from flasgger import Swagger
+from flask_pymongo import PyMongo
+from app.config import Config
+
+mongo = PyMongo()
 
 def create_app():
     app = Flask(__name__)
-    swagger = Swagger(app)
-    app.config.from_object('config.Config')
+
+    # Load config
+    app.config.from_object(Config)
+
+    mongo.init_app(app)
 
     with app.app_context():
         # Import and register blueprints

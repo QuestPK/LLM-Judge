@@ -1,11 +1,19 @@
-import asyncio
+import uuid
 from pprint import pprint
 
 from flask import Blueprint, render_template, jsonify, request
 from flasgger import Swagger
 
-from .utils import get_score_data, get_scores_for_queries
+from .judge_utilities import get_score_data, get_scores_for_queries
+from .db_utils import (
+    update_key_token, 
+    update_usage,
+    check_token_limit,
+    get_input_str_for_queries,
+    get_output_str_for_queries
+)
 from .queues import queue_manager
+
 
 main_bp = Blueprint('main', __name__)
 
@@ -43,15 +51,30 @@ def get_score() -> dict:
     if data is None:
         return jsonify({'error': 'No valid JSON data found in the request.'}), 400
 
-    question = data.get("question", "")
-    baseline = data.get("baseline", "")
-    current = data.get("current", "")
+    if "query_data" not in data and \
+        "email" not in data:
+        return jsonify({'error': 'Invalid, input parameters missing.'}), 400
+    
+    query_data = data.get("query_data")
+    email = data.get("email", "")
+
+    question = query_data.get("question", "")
+    baseline = query_data.get("baseline", "")
+    current = query_data.get("current", "")
     summary_accepted = data.get("summary_accepted", False)
 
     if not baseline or not current or not question:
         return jsonify({'error': 'Baseline or Current missing.'}), 400
     
     try:
+        input_usage_str = f"{question}\n{baseline}\n{current}"
+
+        is_under_limit = check_token_limit(input_usage_str, email)
+
+        if not is_under_limit:
+            return jsonify({
+                "error": "You have used the max number of tokens allowed this month. Please try again later."
+            })
         score_data = get_score_data(
             question=question,
             baseline=baseline,
@@ -61,6 +84,12 @@ def get_score() -> dict:
 
         print("\nOutput: ", score_data)
 
+        output_usage_str = f"{score_data.get('score', 0)} + {score_data.get('reason', '')}" 
+        update_usage(
+            input_str=input_usage_str,
+            output_str=output_usage_str,
+            email=email
+        )
         return jsonify({
             "response": score_data.get("score", 0),
             "reason": score_data.get("reason", ""),
@@ -107,13 +136,23 @@ def get_score_for_queries() -> dict:
     """
     data = request.get_json()
 
-    queries_data = data.get("queries_data", [])
-
-    print("\n==========================\n")
-
-    if data is None or \
-        not queries_data:
+    if data is None:
         return jsonify({'error': 'No queries data found in the request.'}), 400
+    
+    if "queries_data" not in data and \
+        "email" not in data:
+        return jsonify({'error': 'Invalid, input parameters missing.'}), 400
+    
+    email = data.get("email", "")
+    queries_data = data.get("queries_data")
+
+    input_usage_str = get_input_str_for_queries(queries_data)
+    is_under_limit = check_token_limit(input_usage_str, email)
+
+    if not is_under_limit:
+        return jsonify({
+            "error": "You have used the max number of tokens allowed this month. Please try again later."
+        })
     
     print("Total Queues: ", queue_manager.get_total_queues(), end='\n')
     if queue_manager.get_total_queues() > 1:
@@ -121,24 +160,67 @@ def get_score_for_queries() -> dict:
             "error" : "Queue Full"
         })
     
-    # pprint(queries_data)
+    try:
+        # pprint(queries_data)
 
-    queue_manager.create_and_insert_queries(queries_data)
+        queue_manager.create_and_insert_queries(queries_data)
 
-    queue_manager.display_all_items()
+        queue_manager.display_all_items()
 
-    scores_data = get_scores_for_queries(
-        queries_list=queries_data,
-        queue_manager=queue_manager
-    )
+        scores_data = get_scores_for_queries(
+            queries_list=queries_data,
+            queue_manager=queue_manager
+        )
+        
+        print("\nScores data")
+        pprint(scores_data)
 
-    print("\nTotal Queues: ", queue_manager.get_total_queues(), end='\n')
-    queue_manager.display_all_items()
-    
-    print("\nScores data")
-    pprint(scores_data)
+        output_usage_str = get_output_str_for_queries(scores_data)
+        update_usage(
+            input_str=input_usage_str,
+            output_str=output_usage_str,
+            email=email
+        )
+
+        return jsonify({
+            # "scores_data": scores_data
+            "scores_data": scores_data
+        })
+    except Exception as e:
+        print("Error in /get-score-for-queries route:", e)
+        return jsonify({'error': "Error in /get-score-for-queries route"}), 500
+
+@main_bp.route("/get-key-token", methods=["POST"])
+def get_key_token():
+    # Get JSON data from the request
+    data = request.json
+
+    # Validate input
+    if not data or "email" not in data:
+        return jsonify({"error": "Invalid input, 'email' key is required"}), 400
+
+    email = data["email"]
+
+    # Find and update the document if it exists, or insert a new one
+    result, new_key_token = update_key_token(email)
+
+    # Determine the operation performed
+    if result.matched_count > 0:
+        message = "Email found. key_token updated."
+    else:
+        message = "Email not found. New document added."
 
     return jsonify({
-        # "scores_data": scores_data
-        "scores_data": scores_data
-    })
+        "message": message,
+        "email": email,
+        "key_token": new_key_token,
+    }), 200
+
+
+
+# @main_bp.route('/add', methods=['POST'])
+# def add_document():
+#     data = request.json
+#     result = mongo.db.credits.insert_one(data)
+#     return jsonify({"message": "Document added", "id": str(result.inserted_id)})
+
