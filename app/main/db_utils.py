@@ -185,7 +185,18 @@ def update_usage(input_str: str, output_str: str, email: str) -> None:
     pprint(update_fields)
     mongo.db.credits.update_one({"email": email}, {"$set": update_fields})
 
-def add_qa(email: str, qa_data: dict) -> None:
+def add_qa(email: str, project_id: str, qa_data: dict) -> None:
+    """
+    Adds a QA set to the user's database entry. If the QA set with the same set_id already exists, raises a ValueError.
+
+    Args:
+        email (str): The email address of the user who owns the QA set.
+        qa_data (dict): A dictionary containing the QA set and its set_id.
+
+    Raises:
+        ValueError: If the QA set with the same set_id already exists.
+        Exception: If an error occurs while adding the QA set.
+    """
     qa_set = qa_data.get("qa_set")
     set_id = qa_data.get("set_id")
 
@@ -193,12 +204,14 @@ def add_qa(email: str, qa_data: dict) -> None:
         raise ValueError("Both 'qa_set' and 'set_id' must be provided.")
 
     try:
-        user_data = mongo.db.qa_data.find_one({"email": email})
+        # Retrieve the user's current QA sets
+        user_data = mongo.db.qa_data.find_one({"email": email, "project_id": project_id})
 
         if not user_data:
             # If this is the first QA set, add it as the baseline
             mongo.db.qa_data.insert_one({
                 "email": email,
+                "project_id" : project_id,
                 "qa_sets": [
                     {
                         "set_id": set_id,
@@ -236,15 +249,26 @@ def add_qa(email: str, qa_data: dict) -> None:
         print(f"An error occurred while adding QA: {e}")
         raise Exception(f"Failed to add QA: {e}")
 
-def update_baseline(email: str, set_id: str) -> None:
+def update_baseline(email: str, project_id: str, set_id: str) -> None:
+    """
+    Updates the baseline QA set for the given user.
+
+    Args:
+        email (str): The email address of the user who owns the QA set.
+        set_id (str): The ID of the QA set to be updated as the new baseline.
+
+    Raises:
+        ValueError: If the email address is not found in the database or if the set_id does not exist for the given email.
+        Exception: If an error occurs while updating the baseline.
+    """
     if not set_id:
         raise ValueError("'set_id' must be provided to update the baseline.")
 
     try:
-        user_data = mongo.db.qa_data.find_one({"email": email})
+        user_data = mongo.db.qa_data.find_one({"email": email, "project_id" : project_id})
 
         if not user_data:
-            raise ValueError(f"No data found for email: {email}")
+            raise ValueError(f"No data found for email: {email} and project: {project_id}")
 
         # Check if the set_id exists in the user's data
         existing_set = next(
@@ -256,12 +280,14 @@ def update_baseline(email: str, set_id: str) -> None:
             raise ValueError(f"Set ID '{set_id}' does not exist for email: {email}")
 
         # Reset all `baseline` flags to False
+        # This is done by updating all `qa_sets` subdocuments in the user's data
         mongo.db.qa_data.update_many(
             {"email": email},
             {"$set": {"qa_sets.$[].baseline": False}}
         )
 
         # Update the provided set_id to be the new baseline
+        # This is done by updating the specific `qa_sets` subdocument with the given set_id
         mongo.db.qa_data.update_one(
             {"email": email, "qa_sets.set_id": set_id},
             {"$set": {"qa_sets.$.baseline": True}}
@@ -271,7 +297,20 @@ def update_baseline(email: str, set_id: str) -> None:
         print(f"An error occurred while updating the baseline: {e}")
         raise Exception(f"Failed to update the baseline: {e}")
 
-def update_qa(email: str, qa_data: dict) -> None:
+def update_qa(email: str, project_id: str, qa_data: dict) -> None:
+    """
+    Updates an existing QA set.
+
+    Args:
+        email (str): The email address of the user who owns the QA set.
+        qa_data (dict): The dictionary containing the QA set to be updated. Must contain the keys 'qa_set' and 'set_id'.
+            qa_set: The QA set to be updated.
+            set_id: The ID of the QA set to be updated.
+
+    Raises:
+        ValueError: If the email address is not found in the database or if the set_id does not exist for the given email.
+        Exception: If an error occurs while updating the QA set.
+    """
     qa_set = qa_data.get("qa_set")
     set_id = qa_data.get("set_id")
 
@@ -280,7 +319,7 @@ def update_qa(email: str, qa_data: dict) -> None:
 
     try:
         # Find user data by email
-        user_data = mongo.db.qa_data.find_one({"email": email})
+        user_data = mongo.db.qa_data.find_one({"email": email, "project_id" : project_id})
 
         if not user_data:
             raise ValueError(f"No data found for email: {email}")
@@ -291,7 +330,7 @@ def update_qa(email: str, qa_data: dict) -> None:
             None
         )
         if not existing_set:
-            raise ValueError(f"Set ID '{set_id}' does not exist for email: {email}")
+            raise ValueError(f"Set ID '{set_id}' does not exist for email: {email} and project id: {project_id}")
 
         # Update the QA set and the last_updated timestamp
         current_datetime = get_current_datetime()
@@ -308,3 +347,4 @@ def update_qa(email: str, qa_data: dict) -> None:
     except Exception as e:
         print(f"An error occurred while updating the QA set: {e}")
         raise Exception(f"Failed to update the QA set: {e}")
+

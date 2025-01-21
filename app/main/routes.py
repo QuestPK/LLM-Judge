@@ -195,6 +195,16 @@ def get_score_for_queries() -> dict:
 
 @main_bp.route("/get-key-token", methods=["POST"])
 def get_key_token():
+    """
+    Endpoint to retrieve or create a unique key token for a given email.
+
+    The request must include the 'email' key within the JSON body.
+    If the email is found, the key_token is updated. Otherwise, a new document is created.
+
+    Returns:
+        Response: JSON response containing the email, a message indicating the operation performed,
+        and the new key_token.
+    """
     # Get JSON data from the request
     data = request.json
 
@@ -213,6 +223,7 @@ def get_key_token():
     else:
         message = "Email not found. New document added."
 
+    # Return a JSON response with the email, operation message, and new key_token
     return jsonify({
         "message": message,
         "email": email,
@@ -221,72 +232,129 @@ def get_key_token():
 
 @main_bp.route("/set-qa", methods=["POST"])
 def set_qa():
+    """
+    Endpoint to add a new QA set for a given email.
+
+    The request must include 'email' and 'qa_data' keys within the JSON body.
+    If the operation is successful, it returns a success response with the set_id and email.
+    If an error occurs, it returns an error message.
+
+    Returns:
+        Response: JSON response indicating success or failure.
+    """
     # Get JSON data from the request
     data = request.json
 
-    # input parameter validation
+    # Input parameter validation
     if not data or \
-        "email" not in data or \
-            "qa_data" not in data:
+        "project_id" not in data or \
+            "email" not in data or \
+                "qa_data" not in data:
         return jsonify({"error": "Invalid input, required parameter is missing"}), 400
 
     email = data["email"]
-    qa = data["qa_data"]
+    project_id = data["project_id"]
+    qa_data = data["qa_data"]
 
     try:
-        add_qa(email, qa)
+        # Attempt to add the QA set for the provided email
+        add_qa(
+            email=email,
+            project_id=project_id, 
+            qa_data=qa_data
+        )
     except Exception as e:
+        # Log and return an error response if an exception occurs
         print("Error in /set-qa route:", e)
         return jsonify({'error': "Error in /set-qa: " + str(e)}), 400
-    
+
+    # Return a successful response with details of the added QA set
     return jsonify({
-        "response": "QA set added against: set_id: {}, email: {}".format(qa["set_id"], email)
+        "response": "QA set added against: set_id: {}, email: {}".format(qa_data['set_id'], email)
     }), 200
 
 @main_bp.route("/set-baseline", methods=["POST"])
 def set_baseline():
+    """
+    Endpoint to set a baseline for a given email and set_id.
+
+    The request must include 'email' and 'set_id' keys within the JSON body.
+    If the operation is successful, it returns a success response with the set_id and email.
+    If an error occurs, it returns an error message.
+
+    Returns:
+        Response: JSON response indicating success or failure.
+    """
     # Get JSON data from the request
     data = request.json
 
-    # input parameter validation
+    # Input parameter validation
     if not data or \
         "email" not in data or \
-            "set_id" not in data:
+            "project_id" not in data or \
+                "set_id" not in data:
         return jsonify({"error": "Invalid input, required parameter is missing"}), 400
 
     email = data["email"]
     set_id = data["set_id"]
+    project_id = data["project_id"]
 
     try:
-        update_baseline(email, set_id)
+        # Attempt to update the baseline for the provided email and set_id
+        update_baseline(
+            email=email, 
+            project_id=project_id,
+            set_id=set_id
+        )
     except Exception as e:
+        # Log and return an error response if an exception occurs
         print("Error in /set-baseline route:", e)
         return jsonify({'error': "Error in /set-baseline: " + str(e)}), 400
-    
+
+    # Return a successful response with details of the updated baseline
     return jsonify({
-        "response": "Baseline updated added against: set_id: {}, email: {}".format(set_id, email)
+        "response": "Baseline updated against: set_id: {}, email: {}".format(set_id, email)
     }), 200
 
 @main_bp.route("/update-qa", methods=["POST"])
 def update_qa_view():
+    """
+    Endpoint to update an existing QA set for a given email.
+
+    The request must include 'email' and 'qa_data' keys within the JSON body.
+    If the operation is successful, it returns a success response with the set_id and email.
+    If an error occurs, it returns an error message.
+
+    Returns:
+        Response: JSON response indicating success or failure.
+    """
     # Get JSON data from the request
     data = request.json
 
-    # input parameter validation
+    # Input parameter validation
     if not data or \
         "email" not in data or \
-            "qa_data" not in data:
+            "project_id" not in data or \
+                "qa_data" not in data:
         return jsonify({"error": "Invalid input, required parameter is missing"}), 400
 
     email = data["email"]
     qa = data["qa_data"]
+    project_id = data["project_id"]
 
     try:
-        update_qa(email, qa)
+        # Attempt to update the QA set for the provided email
+        update_qa(
+            email=email,
+            project_id=project_id, 
+            qa_data=qa
+        )
     except Exception as e:
+        # Log and return an error response if an exception occurs
         print("Error in /update-qa route:", e)
         return jsonify({'error': "Error in /update-qa: " + str(e)}), 400
-    
+
+    # Return a successful response with details of the updated QA set
     return jsonify({
         "response": "QA set updated against: set_id: {}, email: {}".format(qa["set_id"], email)
     }), 200

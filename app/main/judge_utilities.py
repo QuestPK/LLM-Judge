@@ -183,9 +183,9 @@ def get_score_data(question: str, baseline: str, current: str, summary_accepted:
         str: The response/score from the LLM, containing the score as a string (e.g. '3').
 
     """
-    score_data = get_score_from_llm_temp(question, baseline, current)
+    score_data = get_score_from_llm(question, baseline, current)
 
-    if not summary_accepted and False:
+    if not summary_accepted:
         is_summary = check_if_summary(baseline, current)
 
         if is_summary:
@@ -233,7 +233,7 @@ def process_single_item(item: dict) -> dict:
     current = query_data.get("current", "")
     summary_accepted = query_data.get("summary_accepted", False)
 
-    score_data = get_score_data_temp(question, baseline, current, summary_accepted)
+    score_data = get_score_data(question, baseline, current, summary_accepted)
     # score_data = get_score_data(question, baseline, current, summary_accepted)
 
     return {query_id: score_data}
