@@ -10,7 +10,10 @@ from .db_utils import (
     update_usage,
     check_token_limit,
     get_input_str_for_queries,
-    get_output_str_for_queries
+    get_output_str_for_queries,
+    add_qa,
+    update_baseline,
+    update_qa
 )
 from .queues import queue_manager
 
@@ -216,11 +219,74 @@ def get_key_token():
         "key_token": new_key_token,
     }), 200
 
+@main_bp.route("/set-qa", methods=["POST"])
+def set_qa():
+    # Get JSON data from the request
+    data = request.json
 
+    # input parameter validation
+    if not data or \
+        "email" not in data or \
+            "qa_data" not in data:
+        return jsonify({"error": "Invalid input, required parameter is missing"}), 400
 
-# @main_bp.route('/add', methods=['POST'])
-# def add_document():
-#     data = request.json
-#     result = mongo.db.credits.insert_one(data)
-#     return jsonify({"message": "Document added", "id": str(result.inserted_id)})
+    email = data["email"]
+    qa = data["qa_data"]
 
+    try:
+        add_qa(email, qa)
+    except Exception as e:
+        print("Error in /set-qa route:", e)
+        return jsonify({'error': "Error in /set-qa: " + str(e)}), 400
+    
+    return jsonify({
+        "response": "QA set added against: set_id: {}, email: {}".format(qa["set_id"], email)
+    }), 200
+
+@main_bp.route("/set-baseline", methods=["POST"])
+def set_baseline():
+    # Get JSON data from the request
+    data = request.json
+
+    # input parameter validation
+    if not data or \
+        "email" not in data or \
+            "set_id" not in data:
+        return jsonify({"error": "Invalid input, required parameter is missing"}), 400
+
+    email = data["email"]
+    set_id = data["set_id"]
+
+    try:
+        update_baseline(email, set_id)
+    except Exception as e:
+        print("Error in /set-baseline route:", e)
+        return jsonify({'error': "Error in /set-baseline: " + str(e)}), 400
+    
+    return jsonify({
+        "response": "Baseline updated added against: set_id: {}, email: {}".format(set_id, email)
+    }), 200
+
+@main_bp.route("/update-qa", methods=["POST"])
+def update_qa_view():
+    # Get JSON data from the request
+    data = request.json
+
+    # input parameter validation
+    if not data or \
+        "email" not in data or \
+            "qa_data" not in data:
+        return jsonify({"error": "Invalid input, required parameter is missing"}), 400
+
+    email = data["email"]
+    qa = data["qa_data"]
+
+    try:
+        update_qa(email, qa)
+    except Exception as e:
+        print("Error in /update-qa route:", e)
+        return jsonify({'error': "Error in /update-qa: " + str(e)}), 400
+    
+    return jsonify({
+        "response": "QA set updated against: set_id: {}, email: {}".format(qa["set_id"], email)
+    }), 200

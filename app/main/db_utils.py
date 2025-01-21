@@ -1,6 +1,7 @@
 from datetime import datetime
 from pprint import pprint
 import uuid
+
 from app import mongo
 from .constants import DEFAULT_MAX_TOKEN_LIMIT
 
@@ -12,6 +13,13 @@ def get_current_month_year() -> str:
     Returns the current month and year as a string in 'Month_Year' format.
     """
     return datetime.now().strftime("%B_%Y")  # Example: 'January_2025'
+
+def get_current_datetime() -> str:
+    """
+    Returns the current month and year as a string in 'Month_Year' format.
+    """
+    return datetime.now().strftime("%d-%m-%Y_%H:%M:%S")  # Example: '21-01-2025_12:00'
+
 
 def get_input_str_for_queries(queries_list: list[dict]) -> str:
     """
@@ -177,4 +185,126 @@ def update_usage(input_str: str, output_str: str, email: str) -> None:
     pprint(update_fields)
     mongo.db.credits.update_one({"email": email}, {"$set": update_fields})
 
+def add_qa(email: str, qa_data: dict) -> None:
+    qa_set = qa_data.get("qa_set")
+    set_id = qa_data.get("set_id")
 
+    if not qa_set or not set_id:
+        raise ValueError("Both 'qa_set' and 'set_id' must be provided.")
+
+    try:
+        user_data = mongo.db.qa_data.find_one({"email": email})
+
+        if not user_data:
+            # If this is the first QA set, add it as the baseline
+            mongo.db.qa_data.insert_one({
+                "email": email,
+                "qa_sets": [
+                    {
+                        "set_id": set_id,
+                        "qa_set": qa_set,
+                        "last_updated": get_current_datetime(),
+                        "baseline": True
+                    }
+                ]
+            })
+        else:
+            # Check if the set_id already exists
+            existing_set = next(
+                (entry for entry in user_data.get("qa_sets", []) if entry["set_id"] == set_id),
+                None
+            )
+
+            if existing_set:
+                # Update the existing QA set is not possible
+                raise ValueError("QA set with the same set_id already exists.")
+            else:
+                # Add the new QA set with baseline set to False
+                current_datetime = get_current_datetime()
+                mongo.db.qa_data.update_one(
+                    {"email": email},
+                    {"$push": {
+                        "qa_sets": {
+                            "set_id": set_id,
+                            "qa_set": qa_set,
+                            "last_updated": current_datetime,
+                            "baseline": False
+                        }
+                    }}
+                )
+    except Exception as e:
+        print(f"An error occurred while adding QA: {e}")
+        raise Exception(f"Failed to add QA: {e}")
+
+def update_baseline(email: str, set_id: str) -> None:
+    if not set_id:
+        raise ValueError("'set_id' must be provided to update the baseline.")
+
+    try:
+        user_data = mongo.db.qa_data.find_one({"email": email})
+
+        if not user_data:
+            raise ValueError(f"No data found for email: {email}")
+
+        # Check if the set_id exists in the user's data
+        existing_set = next(
+            (entry for entry in user_data.get("qa_sets", []) if entry["set_id"] == set_id),
+            None
+        )
+
+        if not existing_set:
+            raise ValueError(f"Set ID '{set_id}' does not exist for email: {email}")
+
+        # Reset all `baseline` flags to False
+        mongo.db.qa_data.update_many(
+            {"email": email},
+            {"$set": {"qa_sets.$[].baseline": False}}
+        )
+
+        # Update the provided set_id to be the new baseline
+        mongo.db.qa_data.update_one(
+            {"email": email, "qa_sets.set_id": set_id},
+            {"$set": {"qa_sets.$.baseline": True}}
+        )
+
+    except Exception as e:
+        print(f"An error occurred while updating the baseline: {e}")
+        raise Exception(f"Failed to update the baseline: {e}")
+
+def update_qa(email: str, qa_data: dict) -> None:
+    qa_set = qa_data.get("qa_set")
+    set_id = qa_data.get("set_id")
+
+    if not qa_set or not set_id:
+        raise ValueError("Both 'qa_set' and 'set_id' must be provided.")
+
+    try:
+        # Find user data by email
+        user_data = mongo.db.qa_data.find_one({"email": email})
+
+        if not user_data:
+            raise ValueError(f"No data found for email: {email}")
+
+        # Check if the set_id exists in the user's QA sets
+        existing_set = next(
+            (entry for entry in user_data.get("qa_sets", []) if entry["set_id"] == set_id),
+            None
+        )
+        if not existing_set:
+            raise ValueError(f"Set ID '{set_id}' does not exist for email: {email}")
+
+        # Update the QA set and the last_updated timestamp
+        current_datetime = get_current_datetime()
+        mongo.db.qa_data.update_one(
+            {"email": email, "qa_sets.set_id": set_id},
+            {
+                "$set": {
+                    "qa_sets.$.qa_set": qa_set,
+                    "qa_sets.$.last_updated": current_datetime
+                }
+            }
+        )
+
+    except Exception as e:
+        print(f"An error occurred while updating the QA set: {e}")
+        raise Exception(f"Failed to update the QA set: {e}")
