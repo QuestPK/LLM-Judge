@@ -57,13 +57,13 @@
 2. **Payload**:
     ```json
     {
-        "query_data" : {
-            "question" : "sample question",
-            "baseline" : "baseline answer",
-            "current" : "current answer"
-        },
-        "email" : "test@gmail.com"
-    }
+    "query_data" : {
+        "question" : "sample question",
+        "baseline" : "baseline answer",
+        "current" : "current answer"
+    },
+    "email" : "test@gmail.com"
+}
     ```
 
 ## Usage `/compare-qa-sets` Endpoint
