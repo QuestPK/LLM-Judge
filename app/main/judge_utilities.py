@@ -231,10 +231,10 @@ def process_single_item(item: dict) -> dict:
     question = query_data.get("question", "")
     baseline = query_data.get("baseline", "")
     current = query_data.get("current", "")
-    summary_accepted = query_data.get("summary_accepted", False)
+    summary_accepted = query_data.get("summary_accepted", True)
 
+    # score_data = get_score_data_temp(question, baseline, current, summary_accepted)
     score_data = get_score_data(question, baseline, current, summary_accepted)
-    # score_data = get_score_data(question, baseline, current, summary_accepted)
 
     return {query_id: score_data}
 

@@ -161,7 +161,7 @@ def update_usage(input_str: str, output_str: str, email: str) -> None:
 
     # Retrieve the document for the email
     user_data = mongo.db.credits.find_one({"email": email})
-    print("User Data: ")
+    print("\nUser Data: ")
     pprint(user_data)
 
     if not user_data:
@@ -235,7 +235,7 @@ def add_qa(email: str, project_id: str, qa_data: dict) -> None:
                 # Add the new QA set with baseline set to False
                 current_datetime = get_current_datetime()
                 mongo.db.qa_data.update_one(
-                    {"email": email},
+                    {"email": email, "project_id" : project_id},
                     {"$push": {
                         "qa_sets": {
                             "set_id": set_id,
@@ -289,7 +289,7 @@ def update_baseline(email: str, project_id: str, set_id: str) -> None:
         # Update the provided set_id to be the new baseline
         # This is done by updating the specific `qa_sets` subdocument with the given set_id
         mongo.db.qa_data.update_one(
-            {"email": email, "qa_sets.set_id": set_id},
+            {"email": email, "project_id" : project_id, "qa_sets.set_id": set_id},
             {"$set": {"qa_sets.$.baseline": True}}
         )
 
@@ -322,7 +322,7 @@ def update_qa(email: str, project_id: str, qa_data: dict) -> None:
         user_data = mongo.db.qa_data.find_one({"email": email, "project_id" : project_id})
 
         if not user_data:
-            raise ValueError(f"No data found for email: {email}")
+            raise ValueError(f"No data found for email: {email} and project id: {project_id}")
 
         # Check if the set_id exists in the user's QA sets
         existing_set = next(
@@ -335,7 +335,7 @@ def update_qa(email: str, project_id: str, qa_data: dict) -> None:
         # Update the QA set and the last_updated timestamp
         current_datetime = get_current_datetime()
         mongo.db.qa_data.update_one(
-            {"email": email, "qa_sets.set_id": set_id},
+            {"email": email, "project_id" : project_id, "qa_sets.set_id": set_id},
             {
                 "$set": {
                     "qa_sets.$.qa_set": qa_set,
@@ -347,4 +347,124 @@ def update_qa(email: str, project_id: str, qa_data: dict) -> None:
     except Exception as e:
         print(f"An error occurred while updating the QA set: {e}")
         raise Exception(f"Failed to update the QA set: {e}")
+    
+import requests
 
+# Function to make POST request
+def post_score_for_queries(payload: dict) -> None:
+    try:
+        url = "http://127.0.0.1:5000/get-score-for-queries"  # Replace with actual server URL
+        response = requests.post(url, json=payload)
+        
+        if response.status_code == 200:
+            print("Request was successful.")
+            # print(response.json())
+            return response.json()
+        else:
+            print(f"Request failed with status code {response.status_code}")
+            raise Exception("Request failed with status code {response.status_code}")
+    except Exception as e:
+        print(f"An error occurred while making the POST request: {e}")
+        raise Exception(f"Failed to make the POST request: {e}")
+    
+def compare_qa_sets(email: str, project_id: str, current_set_id: str, baseline_set_id: str = None) -> None:
+    if not current_set_id:
+        raise ValueError("'current_set_id' must be provided.")
+    
+    try:
+        # Find user data by email and project_id
+        user_data = mongo.db.qa_data.find_one({"email": email, "project_id": project_id})
+        
+        if not user_data:
+            raise ValueError(f"No data found for email: {email} and project id: {project_id}")
+        
+        # Retrieve baseline QA set
+        baseline_set = None
+        if baseline_set_id:
+            # Find the baseline set using the provided `baseline_set_id`
+            baseline_set = next(
+                (qa_set for qa_set in user_data["qa_sets"] if qa_set["set_id"] == int(baseline_set_id)), 
+                None
+            )
+        else:
+            # Find the baseline set where `baseline` is True
+            baseline_set = next(
+                (qa_set for qa_set in user_data["qa_sets"] if qa_set.get("baseline", False)), 
+                None
+            )
+        
+        if not baseline_set:
+            raise ValueError("Baseline QA set could not be found.")
+        
+        # Retrieve the current QA set
+        current_set = next(
+            (qa_set for qa_set in user_data["qa_sets"] if qa_set["set_id"] == int(current_set_id)), 
+            None
+        )
+        
+        if not current_set:
+            raise ValueError(f"Current QA set with set_id {current_set_id} could not be found.")
+        
+        # Both sets same
+        if current_set == baseline_set:
+            raise ValueError("Both the sets are identical.")
+        
+        current_set_ids = set([qa_set['id'] for qa_set  in current_set["qa_set"]])
+        baseline_set_ids = set([qa_set['id'] for qa_set  in baseline_set["qa_set"]])
+
+        if not current_set_ids == baseline_set_ids:
+            raise Exception("Questions sets are not same.")
+        
+        # print("Current set ids: ", current_set_ids)
+        # print("Baseline set ids: ", baseline_set_ids)
+
+        baseline_qa_set = baseline_set.get('qa_set')
+        current_qa_set = current_set.get('qa_set')
+
+        # Create a dictionary for query data
+        queries_data = {}
+        
+        # Loop through questions in the baseline and current sets
+        for baseline_qa, current_qa in zip(baseline_qa_set, current_qa_set):
+            question_id = baseline_qa["id"]
+            query = {
+                "question": baseline_qa["question"],
+                "baseline": baseline_qa["answer"],
+                "current": current_qa["answer"]
+            }
+            queries_data[str(question_id)] = query
+        
+        # Prepare the payload for the POST request
+        payload = {
+            "queries_data": [queries_data],
+            "email": email
+        }
+        print("payload")
+        pprint(payload)
+
+        scores_data = post_score_for_queries(payload)
+
+        # Now, include the question, baseline, and current answers into the scores_data
+        enriched_scores_data = {}
+        
+        for question_id, score_info in scores_data.get("scores_data").items():
+            # Retrieve the query details for the question ID
+            query_info = queries_data.get(question_id, {})
+
+            # Add the question, baseline, and current answers to the score data
+            enriched_scores_data[question_id] = {
+                "reason": score_info.get("reason", "No reason"),
+                "score": score_info.get("score", 0),
+                "question": query_info.get("question", ""),
+                "baseline": query_info.get("baseline", ""),
+                "current": query_info.get("current", "")
+            }
+        
+        # You can now work with the enriched_scores_data that includes the question, baseline, current, reason, and score
+        print("\nEnriched Scores Data:")
+        pprint(enriched_scores_data)
+
+        return enriched_scores_data
+    except Exception as e:
+        print(f"An error occurred while comparing QA sets: {e}")
+        raise Exception(f"Failed to compare QA sets: {e}")

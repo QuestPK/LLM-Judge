@@ -13,7 +13,8 @@ from .db_utils import (
     get_output_str_for_queries,
     add_qa,
     update_baseline,
-    update_qa
+    update_qa,
+    compare_qa_sets
 )
 from .queues import queue_manager
 
@@ -357,4 +358,49 @@ def update_qa_view():
     # Return a successful response with details of the updated QA set
     return jsonify({
         "response": "QA set updated against: set_id: {}, email: {}".format(qa["set_id"], email)
+    }), 200
+
+@main_bp.route("/compare-qa-sets", methods=["POST"])
+def compare_qa_sets_view():
+    """
+    Endpoint to compare two QA sets for a given email and project id.
+
+    The request must include 'email' and 'qa_data' keys within the JSON body.
+    If the operation is successful, it returns a success response with the set_id and email.
+    If an error occurs, it returns an error message.
+
+    Returns:
+        Response: JSON response indicating success or failure.
+    """
+    # Get JSON data from the request
+    data = request.json
+
+    # Input parameter validation
+    if not data or \
+        "email" not in data or \
+            "project_id" not in data or \
+                "current_set_id" not in data:
+        return jsonify({"error": "Invalid input, required parameter is missing"}), 400
+
+    email = data["email"]
+    project_id = data["project_id"]
+    current_set_id = data["current_set_id"]
+    baseline_set_id = data.get("baseline_set_id", None)
+
+    try:
+        result = compare_qa_sets(
+            email=email,
+            project_id=project_id,
+            current_set_id=current_set_id,
+            baseline_set_id=baseline_set_id
+        )
+    except Exception as e:
+        # Log and return an error response if an exception occurs
+        print("Error in /compare-qa-sets:", e)
+        return jsonify({'error': "Error in /compare-qa-sets: " + str(e)}), 400
+    
+    # Return a successful response with details of the updated QA set
+    return jsonify({
+        "response": result,
+        "message" : "Scores caculated for current set."
     }), 200
