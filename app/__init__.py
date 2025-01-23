@@ -12,6 +12,14 @@ def create_app():
 
     mongo.init_app(app)
 
+    @app.route('/')
+    def home():
+        return """
+        <h2>Hi, home page! Version: v1.0.0</h2>
+        <br>
+        <a href="/api-docs" target="_blank">View API Documentation</a>
+        """
+    
     with app.app_context():
         # Import and register blueprints
         from app.main import routes

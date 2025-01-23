@@ -1,6 +1,7 @@
 from datetime import datetime
 from pprint import pprint
 import uuid
+import requests
 
 from app import mongo
 from .constants import DEFAULT_MAX_TOKEN_LIMIT
@@ -71,7 +72,6 @@ def get_output_str_for_queries(scores_data: dict[dict]) -> str:
         output_str += f"{reason}\n{score}\n"
 
     return output_str
-
 
 def update_key_token(email: str):
     """
@@ -348,12 +348,22 @@ def update_qa(email: str, project_id: str, qa_data: dict) -> None:
         print(f"An error occurred while updating the QA set: {e}")
         raise Exception(f"Failed to update the QA set: {e}")
     
-import requests
+def post_score_for_queries(payload: dict) -> dict:
+    """
+    Makes a POST request to the server with the provided payload and returns the response.
 
-# Function to make POST request
-def post_score_for_queries(payload: dict) -> None:
+    Args:
+        payload (dict): The payload to be sent in the POST request.
+
+    Returns:
+        dict: The response from the server.
+
+    Raises:
+        Exception: If an error occurs while making the request or if the request failed.
+    """
     try:
-        url = "http://127.0.0.1:5000/get-score-for-queries"  # Replace with actual server URL
+        # Replace with actual server URL
+        url = "http://127.0.0.1:5000/get-score-for-queries"
         response = requests.post(url, json=payload)
         
         if response.status_code == 200:
@@ -362,7 +372,7 @@ def post_score_for_queries(payload: dict) -> None:
             return response.json()
         else:
             print(f"Request failed with status code {response.status_code}")
-            raise Exception("Request failed with status code {response.status_code}")
+            raise Exception(f"Request failed with status code {response.status_code}")
     except Exception as e:
         print(f"An error occurred while making the POST request: {e}")
         raise Exception(f"Failed to make the POST request: {e}")

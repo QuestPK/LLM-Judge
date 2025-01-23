@@ -159,6 +159,7 @@ def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
     reason = result.get("Reason", "")
 
     print("\n\nTotal rating: ", total_rating)
+    print("Question: ", question)
     print("Reason: ", reason)
 
     return {
