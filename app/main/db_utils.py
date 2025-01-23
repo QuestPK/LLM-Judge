@@ -212,7 +212,7 @@ def add_qa(email: str, project_id: str, qa_data: dict) -> None:
 
     try:
         # Retrieve the user's current QA sets
-        user_data = mongo.db.qa_data.find_one({"email": email, "project_id": project_id})
+        user_data = mongo.db.credits.find_one({"email": email, "project_id": project_id})
 
         if not user_data:
             raise Exception(f"Document not found for email: {email} and project_id: {project_id}")
@@ -275,7 +275,7 @@ def update_baseline(email: str, project_id: str, set_id: str) -> None:
         raise ValueError("'set_id' must be provided to update the baseline.")
 
     try:
-        user_data = mongo.db.qa_data.find_one({"email": email, "project_id" : project_id})
+        user_data = mongo.db.credits.find_one({"email": email, "project_id" : project_id})
 
         if not user_data:
             raise ValueError(f"No data found for email: {email} and project: {project_id}")
@@ -329,7 +329,7 @@ def update_qa(email: str, project_id: str, qa_data: dict) -> None:
 
     try:
         # Find user data by email
-        user_data = mongo.db.qa_data.find_one({"email": email, "project_id" : project_id})
+        user_data = mongo.db.credits.find_one({"email": email, "project_id" : project_id})
 
         if not user_data:
             raise ValueError(f"No data found for email: {email} and project id: {project_id}")
@@ -393,7 +393,7 @@ def compare_qa_sets(email: str, project_id: str, current_set_id: str, baseline_s
     
     try:
         # Find user data by email and project_id
-        user_data = mongo.db.qa_data.find_one({"email": email, "project_id": project_id})
+        user_data = mongo.db.credits.find_one({"email": email, "project_id": project_id})
         
         if not user_data:
             raise ValueError(f"No data found for email: {email} and project id: {project_id}")
