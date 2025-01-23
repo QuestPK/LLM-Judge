@@ -49,6 +49,7 @@ get_score_model = api.model(
             )
         ),
         "email": fields.String(required=True, description="User email", example="umertest123@gmail.com"),
+        "project_id": fields.Integer(required=True, description="User project id", example=22),
         "summary_accepted": fields.Boolean(
             required=False, description="Whether the summary is accepted", example=True
         ),
@@ -68,6 +69,7 @@ class GetScore(Resource):
         Calculate the score for a given question, baseline, and current text.
         - **query_data**: Object containing the question, baseline, and current text.
         - **email**: User's email address.
+        - **project_id**: Project ID.
         - **summary_accepted**: Whether the summary is accepted or not.
         """
         data = request.get_json()
@@ -75,11 +77,12 @@ class GetScore(Resource):
         if data is None:
             return {"error": "No valid JSON data found in the request."}, 400
 
-        if "query_data" not in data or "email" not in data:
+        if "query_data" not in data or "project_id" not in data or "email" not in data:
             return {"error": "Invalid, input parameters missing."}, 400
 
         query_data = data.get("query_data")
         email = data.get("email", "")
+        project_id = data.get("project_id", "")
 
         question = query_data.get("question", "")
         baseline = query_data.get("baseline", "")
@@ -91,7 +94,14 @@ class GetScore(Resource):
 
         try:
             input_usage_str = f"{question}\n{baseline}\n{current}"
-            is_under_limit = check_token_limit(input_usage_str, email)
+            try:
+                is_under_limit = check_token_limit(
+                        input_usage_str=input_usage_str, 
+                        email=email,
+                        project_id=project_id
+                    )
+            except Exception as e:
+                return {"error": str(e)}, 400
 
             if not is_under_limit:
                 return {
@@ -103,6 +113,13 @@ class GetScore(Resource):
                 baseline=baseline,
                 current=current,
                 summary_accepted=summary_accepted,
+            )
+
+            output_usage_str = f"{score_data.get('score', 0)} + {score_data.get('reason', '')}" 
+            update_usage(
+                input_str=input_usage_str,
+                output_str=output_usage_str,
+                email=email
             )
 
             return {
@@ -143,6 +160,7 @@ get_score_for_queries_model = api.model(
             )
         ),
         "email": fields.String(required=True, description="User email", example="umertest123@gmail.com"),
+        "project_id": fields.Integer(required=True, description="project id ", example=22),
     },
 )
 @api.route("/get-score-for-queries")
@@ -157,6 +175,7 @@ class GetScoreForQueries(Resource):
         Calculate scores for multiple queries.
         - **queries_data**: List of query objects containing question, baseline, and current text.
         - **email**: User's email address.
+        - **project_id**: Project ID.
         """
         data = request.get_json()
 
@@ -167,18 +186,22 @@ class GetScoreForQueries(Resource):
             return {"error": "Invalid, input parameters missing."}, 400
 
         email = data.get("email", "")
+        project_id = data.get("project_id", "")
         queries_data = data.get("queries_data")
 
-        input_usage_str = get_input_str_for_queries(queries_data)
-        is_under_limit = check_token_limit(input_usage_str, email)
-
+        try:
+            input_usage_str = get_input_str_for_queries(queries_data)
+            is_under_limit = check_token_limit(input_usage_str, email, project_id=project_id)
+        except Exception as e:
+            return {"error": str(e)}, 400
+        
         if not is_under_limit:
             return {
                 "error": "You have used the max number of tokens allowed this month. Please try again later."
             }
 
         if queue_manager.get_total_queues() > 1:
-            return {"error": "Queue Full"}
+            return {"error": "Queue Full"}, 400
 
         try:
             queue_manager.create_and_insert_queries(queries_data)
@@ -186,6 +209,12 @@ class GetScoreForQueries(Resource):
                 queries_list=queries_data, queue_manager=queue_manager
             )
 
+            output_usage_str = get_output_str_for_queries(scores_data)
+            update_usage(
+                input_str=input_usage_str,
+                output_str=output_usage_str,
+                email=email
+            )
             return {"scores_data": scores_data}
         except Exception as e:
             return {"error": "Error in /get-score-for-queries route"}, 500
@@ -195,6 +224,7 @@ get_key_token_model = api.model(
     "GetKeyToken", 
     {
         "email": fields.String(required=True, description="User email", example="umertest123@gmail.com"),
+        "project_id": fields.Integer(required=True, description="Project ID", example=22),
     }
 )
 @api.route("/get-key-token")
@@ -206,17 +236,19 @@ class GetKeyToken(Resource):
     @api.response(500, "Internal Server Error")
     def post(self):
         """
-        Retrieve or create a unique key token for a given email.
+        Retrieve or create a unique key token for a given email. It will create a new data document if the email and project ID are not found.
         - **email**: User's email address.
+        - **project_id**: Project ID.
         """
         data = request.json
 
-        if not data or "email" not in data:
-            return {"error": "Invalid input, 'email' key is required"}, 400
+        if not data or "email" not in data or "project_id" not in data:
+            return {"error": "Invalid input, 'email' and 'project_id' key is required"}, 400
 
         email = data["email"]
+        project_id = data["project_id"]
 
-        result, new_key_token = update_key_token(email)
+        result, new_key_token = update_key_token(email, project_id=project_id)
 
         if result.matched_count > 0:
             message = "Email found. key_token updated."

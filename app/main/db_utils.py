@@ -7,6 +7,7 @@ from app import mongo
 from .constants import DEFAULT_MAX_TOKEN_LIMIT
 
 def get_number_of_tokens(input_str) -> int:
+    "Number of tokens in the input string."
     return len(input_str)
 
 def get_current_month_year() -> str:
@@ -73,7 +74,7 @@ def get_output_str_for_queries(scores_data: dict[dict]) -> str:
 
     return output_str
 
-def update_key_token(email: str):
+def update_key_token(email: str, project_id: int):
     """
     Updates the `key_token` field for a given email, ensuring the `key_token` is unique across the entire collection.
 
@@ -88,20 +89,25 @@ def update_key_token(email: str):
         key_token = str(uuid.uuid4())
 
         # Check if the key_token already exists in the collection
-        existing_token = mongo.db.credits.find_one({"key_token": key_token})
+        existing_user = mongo.db.credits.find_one({
+            "email": email,
+            "project_id" : project_id,
+            })
 
-        if not existing_token:
-            # If the key_token is unique, update the document with the new key_token
-            result = mongo.db.credits.update_one(
-                {"email": email},  # Query to find the document
-                {
-                    "$set": {"key_token": key_token}
-                },  # Update the key_token field
-                upsert=True,  # Insert if the document does not exist
-            )
-            return result, key_token
+        if not existing_user:
+            print(f"Creating new document for email: {email} and with project_id: {project_id}")
+            
+        # If the key_token is unique, update the document with the new key_token
+        result = mongo.db.credits.update_one(
+            {"email": email, "project_id" : project_id},  # Query to find the document
+            {
+                "$set": {"key_token": key_token}
+            },  # Update the key_token field
+            upsert=True,  # Insert if the document does not exist
+        )
+        return result, key_token
     
-def check_token_limit(input_usage_str: str, email: str) -> bool:
+def check_token_limit(input_usage_str: str, email: str, project_id: int) -> bool:
     """
     Checks if the number of tokens in input_usage_str exceeds the token usage for the current month.
     Creates or updates the document if email or current month's token limit is missing.
@@ -120,15 +126,16 @@ def check_token_limit(input_usage_str: str, email: str) -> bool:
     current_month_year = get_current_month_year()
 
     # Ensure the email document exists and has the current month's token limit
-    user_data = mongo.db.credits.find_one({"email": email})
+    user_data = mongo.db.credits.find_one({"email": email, "project_id" : project_id})
 
     if not user_data:
         # If the document doesn't exist, create it
-        mongo.db.credits.insert_one({"email": email, current_month_year: {"token_used" : 0}})
-        tokens_used = 0
+        # mongo.db.credits.insert_one({"email": email, "project_id" : project_id, current_month_year: {"token_used" : 0}})
+        # tokens_used = 0
+        raise Exception(f"Document not found for email: {email} and project_id: {project_id}")
     elif current_month_year not in user_data:
         # If the document exists but the current month's token usage is missing, update it
-        mongo.db.credits.update_one({"email": email}, {"$set": {current_month_year: {"token_used" : 0}}})
+        mongo.db.credits.update_one({"email": email, "project_id" : project_id}, {"$set": {current_month_year: {"token_used" : 0}}})
         tokens_used = 0
     else:
         # Retrieve the existing token limit for the current month
@@ -208,6 +215,9 @@ def add_qa(email: str, project_id: str, qa_data: dict) -> None:
         user_data = mongo.db.qa_data.find_one({"email": email, "project_id": project_id})
 
         if not user_data:
+            raise Exception(f"Document not found for email: {email} and project_id: {project_id}")
+
+        if not user_data.get("qa_sets"):
             # If this is the first QA set, add it as the baseline
             mongo.db.qa_data.insert_one({
                 "email": email,
