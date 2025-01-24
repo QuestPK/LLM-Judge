@@ -22,7 +22,6 @@ def get_current_datetime() -> str:
     """
     return datetime.now().strftime("%d-%m-%Y_%H:%M:%S")  # Example: '21-01-2025_12:00'
 
-
 def get_input_str_for_queries(queries_list: list[dict]) -> str:
     """
     Constructs a single input string from a list of query dictionaries.
@@ -130,30 +129,34 @@ def check_token_limit(input_usage_str: str, email: str, project_id: int) -> bool
 
     if not user_data:
         # If the document doesn't exist, create it
-        # mongo.db.credits.insert_one({"email": email, "project_id" : project_id, current_month_year: {"token_used" : 0}})
-        # tokens_used = 0
         raise ValueError(f"Document not found for email: {email} and project_id: {project_id}")
     elif current_month_year not in user_data:
         # If the document exists but the current month's token usage is missing, update it
-        mongo.db.credits.update_one({"email": email, "project_id" : project_id}, {"$set": {current_month_year: {"token_used" : 0}}})
+        mongo.db.credits.update_one({"email": email, "project_id" : project_id},
+                                    {"$set": {current_month_year: {"token_used" : 0}}})
         tokens_used = 0
     else:
         # Retrieve the existing token limit for the current month
         tokens_used = user_data[current_month_year]["token_used"]
 
-    print("\nTokens Used till now(including this request): ", tokens_used + number_of_tokens)
+    print(f"\nTokens Used till now(including this request): {tokens_used + number_of_tokens}")
     # Compare input tokens with the stored limit
     return number_of_tokens + tokens_used <= DEFAULT_MAX_TOKEN_LIMIT
 
 def update_usage(input_str: str, output_str: str, processing_time: float, email: str, project_id: int, avg_queue_time: float = 0.0) -> None:
     """
-    Updates the database with the token usage for the current month and increments the number of requests.
+    Updates the database with the token usage for the current month, increments the number of requests, 
+    and updates average processing and queue times.
+    
     If the email document or the required fields are not present, it raises an error.
 
     Args:
-        input_str (str): The input string.
-        output_str (str): The output string.
+        input_str (str): The input string for which tokens are calculated.
+        output_str (str): The output string for which tokens are calculated.
+        processing_time (float): The time taken to process the request.
         email (str): The email for which the usage is being updated.
+        project_id (int): The project ID associated with the email.
+        avg_queue_time (float, optional): The average time spent in the queue. Defaults to 0.0.
 
     Returns:
         None
@@ -168,14 +171,14 @@ def update_usage(input_str: str, output_str: str, processing_time: float, email:
     # Get the field name for the current month and year
     current_month_year = get_current_month_year()
 
-    # Retrieve the document for the email
-    user_data = mongo.db.credits.find_one({"email": email, "project_id" : project_id})
+    # Retrieve the document for the email and project_id
+    user_data = mongo.db.credits.find_one({"email": email, "project_id": project_id})
     print("\nUser Data before update: ")
     pprint(user_data)
 
     if not user_data:
         # If the document doesn't exist, raise an error
-        print(f"Document not found for email: {email}) and project_id: {project_id}")
+        print(f"Document not found for email: {email} and project_id: {project_id}")
         raise ValueError(f"Document not found for email: {email} and project_id: {project_id}")
 
     # Initialize or update the current month's usage
@@ -186,7 +189,7 @@ def update_usage(input_str: str, output_str: str, processing_time: float, email:
     updated_number_of_requests = current_usage.get("number_of_requests", 0) + 1
     updated_processing_time = current_usage.get("avg_processing_time", 0) + processing_time
 
-    # Prepare the update operation
+    # Prepare the update operation with calculated averages
     update_fields = {
         f"{current_month_year}.token_used": updated_total_token_used,
         f"{current_month_year}.avg_input_token": round(updated_input_token_used_per_request / updated_number_of_requests, 2),
@@ -197,13 +200,14 @@ def update_usage(input_str: str, output_str: str, processing_time: float, email:
     }
 
     if avg_queue_time > 0:
+        # Update the average queue time if provided
         updated_avg_queue_time = current_usage.get("avg_queue_time", 0) + avg_queue_time
         update_fields[f"{current_month_year}.avg_queue_time"] = round(updated_avg_queue_time / updated_number_of_requests, 2)
 
-    # Perform the update
+    # Perform the update operation in the database
     print("\nUpdated Fields:")
     pprint(update_fields)
-    mongo.db.credits.update_one({"email": email, "project_id" : project_id}, {"$set": update_fields})
+    mongo.db.credits.update_one({"email": email, "project_id": project_id}, {"$set": update_fields})
 
 def add_qa(email: str, project_id: str, qa_data: dict) -> None:
     """
@@ -503,17 +507,36 @@ def compare_qa_sets(email: str, project_id: str, current_set_id: str, baseline_s
         raise Exception(f"Failed to compare QA sets: {e}")
 
 def get_usage_details(email: str, project_id: int) -> dict:
+    """
+    Retrieve usage details for a given email and project ID for the current month.
+
+    Args:
+        email (str): The email address of the user.
+        project_id (int): The project ID associated with the user.
+
+    Returns:
+        dict: A dictionary containing the usage details for the current month.
+
+    Raises:
+        ValueError: If no data is found for the provided email and project ID.
+        Exception: If an error occurs while retrieving usage details.
+    """
     try:
+        # Retrieve user data from the MongoDB collection
         user_data = mongo.db.credits.find_one({"email": email, "project_id": project_id})
         print("user_data in get_usage_details: ")
         pprint(user_data)
 
         if not user_data:
+            # Raise an error if no data is found
             raise ValueError(f"No data found for email: {email} and project id: {project_id}")
 
+        # Get the current month and year in 'Month_Year' format
         current_datetime = get_current_month_year()
 
+        # Return the usage details for the current month
         return user_data.get(current_datetime, {})
     except Exception as e:
+        # Print and raise an exception if an error occurs
         print(f"An error occurred while getting usage details: {e}")
         raise Exception(f"Failed to get usage details: {e}")
