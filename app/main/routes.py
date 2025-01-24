@@ -1,5 +1,6 @@
 import uuid
 from pprint import pprint
+import time
 
 from flask import Blueprint, render_template, jsonify, request
 from flask_restx import Api, Resource, fields
@@ -15,6 +16,7 @@ from .db_utils import (
     update_baseline,
     update_qa,
     compare_qa_sets,
+    get_usage_details
 )
 from .queues import queue_manager
 
@@ -106,28 +108,37 @@ class GetScore(Resource):
             if not is_under_limit:
                 return {
                     "error": "You have used the max number of tokens allowed this month. Please try again later."
-                }, 400  # Ensure you return the appropriate error code here.
+                }, 400  
 
+            start_time = time.time()
             score_data = get_score_data(
                 question=question,
                 baseline=baseline,
                 current=current,
                 summary_accepted=summary_accepted,
             )
+            end_time = time.time()
+            processing_time = end_time - start_time
+            print(f"processing_time: {processing_time}")
+
+            input_usage_str = f"{question}\n{baseline}\n{current}"
 
             output_usage_str = f"{score_data.get('score', 0)} + {score_data.get('reason', '')}" 
             update_usage(
                 input_str=input_usage_str,
                 output_str=output_usage_str,
-                email=email
+                processing_time=processing_time,
+                email=email,
+                project_id=project_id
             )
 
             return {
-                "response": score_data.get("score", 0),
+                "score": score_data.get("score", 0),
                 "reason": score_data.get("reason", ""),
                 "message": "Score Calculated Successfully",
             }, 200
         except Exception as e:
+            print("Error: ", e)
             return {"error": str(e)}, 500
 
 
@@ -192,28 +203,37 @@ class GetScoreForQueries(Resource):
         try:
             input_usage_str = get_input_str_for_queries(queries_data)
             is_under_limit = check_token_limit(input_usage_str, email, project_id=project_id)
-        except Exception as e:
+        except ValueError as e:
             return {"error": str(e)}, 400
         
         if not is_under_limit:
             return {
                 "error": "You have used the max number of tokens allowed this month. Please try again later."
-            }
+            }, 400
 
         if queue_manager.get_total_queues() > 1:
             return {"error": "Queue Full"}, 400
 
         try:
             queue_manager.create_and_insert_queries(queries_data)
+
+            start_time = time.time()
             scores_data = get_scores_for_queries(
                 queries_list=queries_data, queue_manager=queue_manager
             )
+            end_time = time.time()
+            processing_time = end_time - start_time
+            print(f"processing_time: {processing_time}")
 
             output_usage_str = get_output_str_for_queries(scores_data)
+    
             update_usage(
                 input_str=input_usage_str,
                 output_str=output_usage_str,
-                email=email
+                processing_time=processing_time,
+                avg_queue_time = scores_data["avg_queue_time"],
+                email=email,
+                project_id=project_id
             )
             return {"scores_data": scores_data}
         except Exception as e:
@@ -328,7 +348,7 @@ class SetQA(Resource):
         qa_data = data["qa_data"]
 
         try:
-            # Simulated logic for adding QA
+            # adding QA to db
             add_qa(email=email, project_id=project_id, qa_data=qa_data)
             return {
                 "response": f"QA set added against: set_id: {qa_data['set_id']}, email: {email}"
@@ -353,7 +373,7 @@ baseline_model = api.model(
         ),
     },
 )
-# Route for setting a baseline
+# Route for changing baseline set
 @api.route("/set-baseline")
 class SetBaseline(Resource):
     @api.expect(baseline_model)
@@ -385,7 +405,7 @@ class SetBaseline(Resource):
         project_id = data["project_id"]
 
         try:
-            # Simulated logic for setting baseline
+            # setting baseline
             update_baseline(email=email, project_id=project_id, set_id=set_id)
             return {
                 "response": f"Baseline updated against: set_id: {set_id}, email: {email}"
@@ -529,3 +549,49 @@ class CompareQASets(Resource):
             "response": result,
             "message": "Scores calculated for the current set.",
         }, 200
+
+
+@api.route("/get-usage-details")
+class GetUsageDetails(Resource):
+    @api.doc(
+        description="Get usage details for a given email and project ID.",
+        params={
+            "email": "Email address of the user (required)",
+            "project_id": "Project ID (required)",
+        },
+    )
+    @api.response(200, "Success")
+    @api.response(400, "Invalid input / Not found")
+    @api.response(500, "Internal Server Error")
+    def get(self):
+        """
+        Get usage details for a given email and project ID.
+        - **email**: Email address of the user
+        - **project_id**: Project ID
+        """
+        # Get query parameters
+        email = request.args.get("email")
+        project_id = request.args.get("project_id")
+
+        # Input parameter validation
+        if not email or not project_id:
+            return {"error": "Invalid input, email and project_id are required"}, 400
+
+        try:
+            # Convert project_id to an integer
+            project_id = int(project_id)
+        except ValueError:
+            return {"error": "project_id must be a valid integer"}, 400
+
+        try:
+            # Call your function to fetch usage details
+            result = get_usage_details(email=email, project_id=project_id)
+        except Exception as e:
+            print("Error in /get-usage-details:", e)
+            return {"error": f"Error in /get-usage-details: {str(e)}"}, 500
+
+        return {
+            "response": result,
+            "message": "Usage details retrieved.",
+        }, 200
+

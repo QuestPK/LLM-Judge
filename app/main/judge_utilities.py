@@ -1,6 +1,7 @@
 import json
 import requests
 from pprint import pprint
+import time
 from typing import List, Dict
 import concurrent.futures
 
@@ -136,7 +137,7 @@ def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
         "model": MODEL_NAME,
         "messages": messages,
         "stream": False,
-        "keep_alive": "30m",
+        "keep_alive": "6h",
     }
 
     try:
@@ -294,6 +295,7 @@ def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager
     """
     scores_data = {}
     
+    time_list = []
     while True:
         items = queue_manager.get_items_to_process()
         queue_manager.delete_empty_queues()
@@ -302,18 +304,23 @@ def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager
         if not items:
             break
         
+        start_time = time.time()
         # process the retreived items
         scores = process_items(items)
 
+        end_time = time.time()
+        total_time = end_time - start_time
+
+        time_list.append(round(total_time, 2))
+
         # add the scores
-        scores_data.update(scores)
+        scores_data.update({"scores": scores})
 
         query_ids = [list(item.keys()) for item in queries_list][0]
         
-        
         # if all queries scores have been retrieved
-        print("Query ids ",query_ids)
-        print("Scores data keys ", list(scores_data.keys()))
+        print("\nQuery ids ",query_ids)
+        print("Scores data keys ", list(scores_data.get("scores", {}).keys()))
 
         if query_ids == list(scores_data.keys()):
             print("Breaking...")
@@ -321,6 +328,8 @@ def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager
         
         # import time
         # time.sleep(2)
+    print("Avg queue time: ", time_list)
+    scores_data["avg_queue_time"] = round(sum(time_list) / len(time_list), 2)
     return scores_data
 
     
