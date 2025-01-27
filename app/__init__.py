@@ -1,11 +1,25 @@
 from flask import Flask
-from flasgger import Swagger
+from flask_pymongo import PyMongo
+from app.config import Config
+
+mongo = PyMongo()
 
 def create_app():
     app = Flask(__name__)
-    swagger = Swagger(app)
-    app.config.from_object('config.Config')
 
+    # Load config
+    app.config.from_object(Config)
+
+    mongo.init_app(app)
+
+    @app.route('/')
+    def home():
+        return """
+        <h2>Hi, home page! Version: v1.0.0</h2>
+        <br>
+        <a href="/api-docs" target="_blank">View API Documentation</a>
+        """
+    
     with app.app_context():
         # Import and register blueprints
         from app.main import routes

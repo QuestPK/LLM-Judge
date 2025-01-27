@@ -1,4 +1,5 @@
 user_input_1 = """\
+Question: What is a healthy diet?
 Bseline:
 A healthy diet should include a variety of fruits, vegetables, whole grains, lean protein, and healthy fats. Avoid processed foods, limit sugar, and control portion sizes to maintain a balanced and nutritious diet.
 
@@ -8,56 +9,58 @@ A healthy diet consists of eating fruits and vegetables. Avoid eating junk food 
 # Expected Score: {"Total rating": 3}
 
 user_input_2 = """\
-Baseline:
-The process of photosynthesis occurs in the chloroplasts of plant cells. It uses sunlight, carbon dioxide, and water to produce glucose and oxygen. The overall chemical equation for photosynthesis is:
+Question: What is photosynthesis?
+Baseline: The process of photosynthesis occurs in the chloroplasts of plant cells. It uses sunlight, carbon dioxide, and water to produce glucose and oxygen. The overall chemical equation for photosynthesis is:
 6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂.
 
-Current:
-The process of photosynthesis occurs in the chloroplasts of plant cells. It uses sunlight, carbon dioxide, and water to produce glucose and oxygen. The overall chemical equation for photosynthesis is:
+Current: The process of photosynthesis occurs in the chloroplasts of plant cells. It uses sunlight, carbon dioxide, and water to produce glucose and oxygen. The overall chemical equation for photosynthesis is:
 6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂.
 """
 # Expected Score: {"Total rating": 4}
 
 user_input_3 = """\
-Baseline:
-Machine learning involves training algorithms on data to make predictions or decisions without being explicitly programmed. Supervised learning, unsupervised learning, and reinforcement learning are three primary types of machine learning.
-
-Current:
-Machine learning is the learning of robots. It is a type of learning that is done by robots.
+Question: What is machine learning?
+Baseline: Machine learning involves training algorithms on data to make predictions or decisions without being explicitly programmed. Supervised learning, unsupervised learning, and reinforcement learning are three primary types of machine learning.
+Current: Machine learning is the learning of robots. It is a type of learning that is done by robots.
 """
 # Expected Score: {"Total rating": 1}
 
 user_input_4 = """\
-[baseline] What is the capital of France?
-[current] what is capital of France.
+[question] What is the capital of France?
+[baseline] Paris is the capital of France.
+[current] The capital of france.
 """
 #  Expected Score: {"Total rating": 3}
 # (Perfect match with complete accuracy)
 
 user_input_5 = """\
-[baseline] List three primary colors.
-[current] List down the top 3 colors.
+[question] What are the primary colors?
+[baseline] Red, Rellow, and Blue.
+[current] Blue, Magenta, and Green.
 """
 # Expected Score: {"Total rating": 2}
 # (Incomplete - missing yellow and partially answers the question)
 
 user_input_6 = """\
-[baseline] Who wrote Romeo and Juliet?
+[question] Who wrote Romeo and Juliet?
+[baseline] Romeo and Juliet was written by Shakespeare.
 [current] Shakespeare wrote many plays.
 """
 # Expected Score: {"Total rating": 1}
 # (Too vague and doesn't directly answer the question)
 
 user_input_7 = """\
-[baseline] What causes rain?
-[current] Rain happens when water vapor in clouds condenses and becomes too heavy to stay in the air.
+[question] Why does it rain?
+[baseline] Rain happens when water vapor in clouds condenses and becomes too heavy to stay in the air.
+[current] What causes rain?
 """
 # Expected Score: {"Total rating": 2}
 # (Complete and accurate explanation)
 
 user_input_8 = """\
-[baseline] How do you make a peanut butter sandwich?
-[current] Take two pieces of bread and put peanut butter in the middle.
+[question] How do you make a peanut butter sandwich?
+[baseline] Take two pieces of bread and put peanut butter in the middle.
+[current] Spread peanut butter on bread.
 """
 # Expected Score: {"Total rating": 3}
 # (Basic answer but missing some details like spreading the peanut butter)
