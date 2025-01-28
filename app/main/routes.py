@@ -31,6 +31,7 @@ api = Api(
     doc="/api-docs",
 )
 
+# input /get-score
 get_score_model = api.model(
     "GetScore",
     {
@@ -72,22 +73,12 @@ get_score_model = api.model(
 output_get_score_model = api.model(
     "OutputGetScore",
     {
-        "score": fields.Float(
-            required=True,
-            description="The score for the given question, baseline, and current text.",
-            example=0.8,
-        ),
-        "resason": fields.String(
-            required=True,
-            description="Reason of the score",
-            example="Success",
-        ),
-        "message": fields.String(
-            required=True,
-            description="A message indicating the success or failure of the operation.",
-            example="Success",
-        ),
-    },
+        "score": fields.Raw({
+                "score": "Integer Score",
+                "reason": "Reason of score",
+                "message": "API message",
+            }), 
+    }
 )
 # model for error responses
 error_response_model = api.model(
@@ -108,7 +99,7 @@ class GetScore(Resource):
     @api.response(
         400, "Quota exceeded / Invalid input / Not found", error_response_model
     )
-    @api.response(500, "Internal Server Error")
+    @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
         """
         Calculate the score for a given question, baseline, and current text.
@@ -320,7 +311,7 @@ class GetScoreForQueries(Resource):
 
 
 # Input model for /get-key-token
-get_key_token_model = api.model(
+input_get_key_token_model = api.model(
     "GetKeyToken",
     {
         "email": fields.String(
@@ -332,7 +323,7 @@ get_key_token_model = api.model(
     },
 )
 # response models
-success_model = api.model(
+output_get_key_token = api.model(
     "SuccessResponse",
     {
         "message": fields.String(
@@ -344,16 +335,15 @@ success_model = api.model(
         "key_token": fields.String(
             description="Generated key token", example="12345-abcdef-67890"
         ),
+        
     },
 )
 
-
-# Define the route for the API
 @api.route("/get-key-token")
 class GetKeyToken(Resource):
-    @api.expect(get_key_token_model)
+    @api.expect(input_get_key_token_model)
     @api.doc(description="Retrieve and create a unique key token for a given email.")
-    @api.response(200, "Success", success_model)
+    @api.response(200, "Success", output_get_key_token)
     @api.response(
         400, "Quota exceeded / Invalid input / Not found", error_response_model
     )
@@ -395,7 +385,7 @@ class GetKeyToken(Resource):
         }, 200
 
 
-set_qa_request_model = api.model(
+input_set_qa_request_model = api.model(
     "Set QA",
     {
         "email": fields.String(
@@ -433,22 +423,16 @@ set_qa_output_model = api.model(
         ),
     },
 )
-set_qa_error_model = api.model(
-    "Set QA Error",
-    {
-        "error": fields.String(description="Error message", example="Error details."),
-    },
-)
 
 
 # Route for adding a new QA set
 @api.route("/set-qa")
 class SetQA(Resource):
-    @api.expect(set_qa_request_model)
+    @api.expect(input_set_qa_request_model)
     @api.doc(description="Add a new QA set for a given email.")
     @api.response(200, "Success", set_qa_output_model)
-    @api.response(400, "Invalid input / Not found", set_qa_error_model)
-    @api.response(500, "Internal Server Error", set_qa_error_model)
+    @api.response(400, "Invalid input / Not found", error_response_model)
+    @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
         """
         Adds a new QA set for the given email.
@@ -480,8 +464,8 @@ class SetQA(Resource):
             return {"error": f"Error in /set-qa: {str(e)}"}, 400
 
 
-# Define the model for baseline input data
-baseline_model = api.model(
+# model for baseline input data
+input_set_baseline_model = api.model(
     "Baseline",
     {
         "email": fields.String(
@@ -509,7 +493,7 @@ success_response_model = api.model(
 # Route for changing baseline set
 @api.route("/set-baseline")
 class SetBaseline(Resource):
-    @api.expect(baseline_model)
+    @api.expect(input_set_baseline_model)
     @api.doc(
         description="Set provided set as a baseline for a given email and project id."
     )
@@ -554,7 +538,7 @@ class SetBaseline(Resource):
 
 
 # Model for updating QA
-update_qa_model = api.model(
+input_update_qa_model = api.model(
     "UPdate QA Request",
     {
         "email": fields.String(
@@ -595,7 +579,7 @@ success_qa_model = api.model(
 
 @api.route("/update-qa")
 class UpdateQA(Resource):
-    @api.expect(update_qa_model)
+    @api.expect(input_update_qa_model)
     @api.doc(description="Update an existing QA set for a given user.")
     @api.response(200, "Success", success_qa_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
@@ -636,7 +620,7 @@ class UpdateQA(Resource):
         }, 200
 
 
-# Model for comparing QA sets
+# Input Model for /compare-qa-sets
 compare_qa_sets_model = api.model(
     "CompareQASets",
     {
@@ -659,14 +643,44 @@ compare_qa_sets_model = api.model(
     },
 )
 
+# Output Model for /compare-qa-sets
+response_compare_qa_sets_model = api.model(
+    "Data",
+    {
+        "response": fields.Raw(
+            required=True,
+            description="Response containing dynamic IDs with their details",
+            example={
+                12: {
+                    "reason": "No reason",
+                    "score": 0,
+                    "question": "",
+                    "baseline": "",
+                    "current": "",
+                },
+                34: {
+                    "reason": "No reason",
+                    "score": 0,
+                    "question": "",
+                    "baseline": "",
+                    "current": "",
+                },
+            },
+        ),
+        "message": fields.String(
+            required=True, description="Response message", example="Update successful"
+        ),
+    },
+)
+
 
 @api.route("/compare-qa-sets")
 class CompareQASets(Resource):
     @api.expect(compare_qa_sets_model)
     @api.doc(description="Compare two QA sets for a given email and project ID.")
-    @api.response(200, "Success")
-    @api.response(400, "Invalid input / Not found")
-    @api.response(500, "Internal Server Error")
+    @api.response(200, "Success", response_compare_qa_sets_model)
+    @api.response(400, "Invalid input / Not found", error_response_model)
+    @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
         """
         Compare two QA sets for a given email and project ID.
@@ -709,39 +723,30 @@ class CompareQASets(Resource):
         }, 200
 
 
-# usage details response
-usage_detail_format = api.model(
-    "UsageDetails",
-    {
-        "token_used": fields.Integer(description="Total token used", example=570),
-        "avg_input_token": fields.Integer(
-            description="Average input token", example=93
-        ),
-        "avg_output_token": fields.Integer(
-            description="Average output token", example=192
-        ),
-        "avg_processing_time": fields.Float(
-            description="Average processing time", example=30.44
-        ),
-        "avg_queue_time": fields.Float(description="Average queue time", example=30.43),
-        "number_of_requests": fields.Integer(
-            description="Number of requests", example=2
-        ),
-        "processing_time": fields.Float(description="Processing time", example=29.98),
-    },
-)
-
-# Define the output model for usage details response
+# Usage details response defined using fields.Raw
 output_get_usage_model = api.model(
-    "OutputUsage",
+    "OutputUsageRaw",
     {
-        "response": fields.Nested(usage_detail_format),
+        "response": fields.Raw(
+            required=True,
+            description="Usage details containing token, processing, and request data",
+            example={
+                "token_used": 570,
+                "avg_input_token": 93,
+                "avg_output_token": 192,
+                "avg_processing_time": 30.44,
+                "avg_queue_time": 30.43,
+                "number_of_requests": 2,
+                "processing_time": 29.98,
+            },
+        ),
         "message": fields.String(
-            description="Response message", example="Usage details retrieved."
+            required=True,
+            description="Response message",
+            example="Usage details retrieved.",
         ),
     },
 )
-
 
 @api.route("/get-usage-details")
 class GetUsageDetails(Resource):
