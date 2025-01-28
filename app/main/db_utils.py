@@ -1,6 +1,8 @@
 from datetime import datetime
 from pprint import pprint
 import uuid
+
+from flask import request
 import requests
 
 from app import mongo
@@ -79,26 +81,24 @@ def update_key_token(email: str, project_id: int):
 
     Args:
         email (str): The email of the document to update.
+        project_id (int): The project ID associated with the email.
 
     Returns:
-        UpdateResult: The result of the update operation.
+        tuple: The result of the update operation and the generated key_token.
     """
     while True:
         # Generate a new unique key_token
         key_token = str(uuid.uuid4())
 
         # Check if the key_token already exists in the collection
-        existing_user = mongo.db.credits.find_one({
-            "email": email,
-            "project_id" : project_id,
-            })
+        existing_token = mongo.db.credits.find_one({"key_token": key_token})
+        if existing_token:
+            # If the key_token already exists, retry with a new token
+            continue
 
-        if not existing_user:
-            print(f"Creating new document for email: {email} and with project_id: {project_id}")
-            
-        # If the key_token is unique, update the document with the new key_token
+        # If the key_token is unique, update the document or create a new one
         result = mongo.db.credits.update_one(
-            {"email": email, "project_id" : project_id},  # Query to find the document
+            {"email": email, "project_id": project_id},  # Query to find the document
             {
                 "$set": {"key_token": key_token}
             },  # Update the key_token field
@@ -234,7 +234,9 @@ def add_qa(email: str, project_id: str, qa_data: dict) -> None:
         if not user_data:
             raise Exception(f"Document not found for email: {email} and project_id: {project_id}")
 
+        user_data = mongo.db.qa_data.find_one({"email": email, "project_id": project_id})
         if not user_data.get("qa_sets"):
+            print("First QA Set.")
             # If this is the first QA set, add it as the baseline
             mongo.db.qa_data.insert_one({
                 "email": email,
@@ -388,9 +390,14 @@ def post_score_for_queries(payload: dict) -> dict:
     Raises:
         Exception: If an error occurs while making the request or if the request failed.
     """
+    import inspect
+
     try:
-        # Replace with actual server URL
-        url = "http://127.0.0.1:5000/get-score-for-queries"
+        # Dynamically get the base URL
+        base_url = request.host_url.rstrip('/')  # Removes the trailing slash from the host_url
+        url = f"{base_url}/get-score-for-queries"
+        print("Making POST request to:", url)
+
         response = requests.post(url, json=payload)
         
         if response.status_code == 200:
@@ -398,7 +405,7 @@ def post_score_for_queries(payload: dict) -> dict:
             # print(response.json())
             return response.json()
         else:
-            print(f"Request failed with status code {response.status_code}")
+            print(f"Request failed with status code {response.status_code}. ({inspect.currentframe().f_code.co_name})")
             raise Exception(f"Request failed with status code {response.status_code}")
     except Exception as e:
         print(f"An error occurred while making the POST request: {e}")
@@ -474,7 +481,8 @@ def compare_qa_sets(email: str, project_id: str, current_set_id: str, baseline_s
         # Prepare the payload for the POST request
         payload = {
             "queries_data": [queries_data],
-            "email": email
+            "email": email,
+            "project_id" : project_id
         }
         print("payload")
         pprint(payload)

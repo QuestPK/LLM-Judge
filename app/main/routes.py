@@ -73,12 +73,14 @@ get_score_model = api.model(
 output_get_score_model = api.model(
     "OutputGetScore",
     {
-        "score": fields.Raw({
+        "score": fields.Raw(
+            {
                 "score": "Integer Score",
                 "reason": "Reason of score",
                 "message": "API message",
-            }), 
-    }
+            }
+        ),
+    },
 )
 # model for error responses
 error_response_model = api.model(
@@ -261,7 +263,7 @@ class GetScoreForQueries(Resource):
         if data is None:
             return {"error": "No queries data found in the request."}, 400
 
-        if "queries_data" not in data and "email" not in data:
+        if "queries_data" not in data and "email" not in data and "project_id" not in data:
             return {"error": "Invalid, input parameters missing."}, 400
 
         email = data.get("email", "")
@@ -335,9 +337,9 @@ output_get_key_token = api.model(
         "key_token": fields.String(
             description="Generated key token", example="12345-abcdef-67890"
         ),
-        
     },
 )
+
 
 @api.route("/get-key-token")
 class GetKeyToken(Resource):
@@ -747,6 +749,7 @@ output_get_usage_model = api.model(
         ),
     },
 )
+
 
 @api.route("/get-usage-details")
 class GetUsageDetails(Resource):
