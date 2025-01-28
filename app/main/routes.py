@@ -57,11 +57,8 @@ get_score_model = api.model(
                 },
             )
         ),
-        "email": fields.String(
-            required=True, description="User email", example="umertest123@gmail.com"
-        ),
-        "project_id": fields.Integer(
-            required=True, description="User project id", example=22
+        "key_token": fields.String(
+            required=True, description="User key token", example="12345abcdef67890"
         ),
         "summary_accepted": fields.Boolean(
             required=False, description="Whether the summary is accepted", example=True
@@ -106,8 +103,7 @@ class GetScore(Resource):
         """
         Calculate the score for a given question, baseline, and current text.
         - **query_data**: Object containing the question, baseline, and current text.
-        - **email**: User's email address.
-        - **project_id**: Project ID.
+        - **key_token**: User identifier.
         - **summary_accepted**: Whether the summary is accepted or not.
         """
         data = request.get_json()
@@ -115,12 +111,11 @@ class GetScore(Resource):
         if data is None:
             return {"error": "No valid JSON data found in the request."}, 400
 
-        if "query_data" not in data or "project_id" not in data or "email" not in data:
+        if "query_data" not in data or "key_token" not in data :
             return {"error": "Invalid, input parameters missing."}, 400
 
         query_data = data.get("query_data")
-        email = data.get("email", "")
-        project_id = data.get("project_id", "")
+        key_token = data.get("key_token", "")
 
         question = query_data.get("question", "")
         baseline = query_data.get("baseline", "")
@@ -134,7 +129,8 @@ class GetScore(Resource):
             input_usage_str = f"{question}\n{baseline}\n{current}"
             try:
                 is_under_limit = check_token_limit(
-                    input_usage_str=input_usage_str, email=email, project_id=project_id
+                    input_usage_str=input_usage_str, 
+                    key_token=key_token
                 )
             except Exception as e:
                 return {"error": str(e)}, 400
@@ -164,8 +160,7 @@ class GetScore(Resource):
                 input_str=input_usage_str,
                 output_str=output_usage_str,
                 processing_time=processing_time,
-                email=email,
-                project_id=project_id,
+                key_token=key_token
             )
 
             return {
@@ -187,7 +182,28 @@ get_score_for_queries_model = api.model(
                 api.model(
                     "QueryItem",
                     {
-                        "query_id": fields.Nested(
+                        "123": fields.Nested(
+                            api.model(
+                                "QueryDetails",
+                                {
+                                    "question": fields.String(
+                                        required=True, description="The question string"
+                                    ),
+                                    "baseline": fields.String(
+                                        required=True, description="The baseline string"
+                                    ),
+                                    "current": fields.String(
+                                        required=True, description="The current string"
+                                    )
+                                },
+                            ),
+                            example={
+                                "question": "What is capital of france?",
+                                "baseline": "Paris",
+                                "current": "I don't know",
+                            },
+                        ),
+                        "456": fields.Nested(
                             api.model(
                                 "QueryDetails",
                                 {
@@ -203,20 +219,17 @@ get_score_for_queries_model = api.model(
                                 },
                             ),
                             example={
-                                "question": "What is capital of france?",
-                                "baseline": "Paris",
-                                "current": "I don't know",
+                                "question": "What is capital of Pakistan?",
+                                "baseline": "Islamabad",
+                                "current": "Islamabad",
                             },
                         ),
                     },
                 )
             )
         ),
-        "email": fields.String(
-            required=True, description="User email", example="umertest123@gmail.com"
-        ),
-        "project_id": fields.Integer(
-            required=True, description="project id ", example=22
+        "key_token": fields.String(
+            required=True, description="User key token", example="12345abcdef67890"
         ),
     },
 )
@@ -254,26 +267,25 @@ class GetScoreForQueries(Resource):
     def post(self):
         """
         Calculate scores for multiple queries.
-        - **queries_data**: List of query objects containing question, baseline, and current text.
-        - **email**: User's email address.
-        - **project_id**: Project ID.
+        - **key_token**: User identifier.
+        - **query_data**: Object containing the question, baseline, and current text.
         """
         data = request.get_json()
 
         if data is None:
             return {"error": "No queries data found in the request."}, 400
 
-        if "queries_data" not in data and "email" not in data and "project_id" not in data:
+        if "queries_data" not in data and "key_token" not in data:
             return {"error": "Invalid, input parameters missing."}, 400
 
-        email = data.get("email", "")
-        project_id = data.get("project_id", "")
+        key_token = data.get("key_token", "")
         queries_data = data.get("queries_data")
 
         try:
             input_usage_str = get_input_str_for_queries(queries_data)
             is_under_limit = check_token_limit(
-                input_usage_str, email, project_id=project_id
+                input_usage_str=input_usage_str,
+                key_token=key_token,
             )
         except ValueError as e:
             return {"error": str(e)}, 400
@@ -304,10 +316,9 @@ class GetScoreForQueries(Resource):
                 output_str=output_usage_str,
                 processing_time=processing_time,
                 avg_queue_time=scores_data["avg_queue_time"],
-                email=email,
-                project_id=project_id,
+                key_token=key_token,
             )
-            return {"scores_data": scores_data.get("scores")}
+            return {"scores": scores_data.get("scores")}
         except Exception as e:
             return {"error": "Error in /get-score-for-queries route"}, 500
 
@@ -317,22 +328,16 @@ input_get_key_token_model = api.model(
     "GetKeyToken",
     {
         "email": fields.String(
-            required=True, description="User email", example="umertest123@gmail.com"
-        ),
-        "project_id": fields.Integer(
-            required=True, description="Project ID", example=22
-        ),
+            required=True, description="User email", example="test123@gmail.com"
+        )
     },
 )
 # response models
-output_get_key_token = api.model(
-    "SuccessResponse",
+output_get_key_token_model = api.model(
+    "OutputGetKeyToken",
     {
         "message": fields.String(
             description="Success message", example="Email found. key_token updated."
-        ),
-        "email": fields.String(
-            description="User email", example="umertest123@gmail.com"
         ),
         "key_token": fields.String(
             description="Generated key token", example="12345-abcdef-67890"
@@ -345,7 +350,7 @@ output_get_key_token = api.model(
 class GetKeyToken(Resource):
     @api.expect(input_get_key_token_model)
     @api.doc(description="Retrieve and create a unique key token for a given email.")
-    @api.response(200, "Success", output_get_key_token)
+    @api.response(200, "Success", output_get_key_token_model)
     @api.response(
         400, "Quota exceeded / Invalid input / Not found", error_response_model
     )
@@ -354,19 +359,17 @@ class GetKeyToken(Resource):
         """
         Retrieve and create a unique key token for a given email. It will create a new data document if the email and project ID are not found.
         - **email**: User's email address.
-        - **project_id**: Project ID.
         """
         data = request.json
 
-        if not data or "email" not in data or "project_id" not in data:
+        if not data or "email" not in data:
             return {
-                "error": "Invalid input, 'email' and 'project_id' key is required"
+                "error": "Invalid input, 'email' key is required"
             }, 400
 
         email = data["email"]
-        project_id = data["project_id"]
-
-        result, new_key_token = update_key_token(email, project_id=project_id)
+    
+        result, new_key_token = update_key_token(email)
 
         if result.matched_count > 0:
             message = "Email found. key_token updated."
@@ -382,23 +385,17 @@ class GetKeyToken(Resource):
         )
         return {
             "message": message,
-            "email": email,
             "key_token": new_key_token,
         }, 200
 
 
 input_set_qa_request_model = api.model(
-    "Set QA",
+    "Set QnA",
     {
-        "email": fields.String(
+        "key_token": fields.String(
             required=True,
-            description="Email address of the user",
-            example="umertest123@gmail.com",
-        ),
-        "project_id": fields.Integer(
-            required=True,
-            description="Project ID",
-            example=22,
+            description="User Identifier",
+            example="12345abcdef67890",
         ),
         "qa_data": fields.Raw(
             required=True,
@@ -409,6 +406,11 @@ input_set_qa_request_model = api.model(
                         "id": 1,
                         "question": "What is the capital of france?",
                         "answer": "Paris",
+                    },
+                    {
+                        "id": 2,
+                        "question": "What is the capital of Pakistan?",
+                        "answer": "Pakistan",
                     }
                 ],
                 "set_id": 78,
@@ -417,8 +419,8 @@ input_set_qa_request_model = api.model(
     },
 )
 
-set_qa_output_model = api.model(
-    "Set QA Output",
+set_qna_output_model = api.model(
+    "Set QnA Output",
     {
         "response": fields.String(
             description="Success message", example="QA set added successfully."
@@ -428,39 +430,36 @@ set_qa_output_model = api.model(
 
 
 # Route for adding a new QA set
-@api.route("/set-qa")
-class SetQA(Resource):
+@api.route("/set-qna")
+class SetQnA(Resource):
     @api.expect(input_set_qa_request_model)
     @api.doc(description="Add a new QA set for a given email.")
-    @api.response(200, "Success", set_qa_output_model)
+    @api.response(200, "Success", set_qna_output_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
     @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
         """
         Adds a new QA set for the given email.
 
-        - **email**: Email address of the user
-        - **project_id**: Project ID
+        - **key_token**: User identifier.
         - **qa_data**: QA data object with set_id
         """
         data = request.json
         if (
             not data
-            or "project_id" not in data
-            or "email" not in data
+            or "key_token" not in data
             or "qa_data" not in data
         ):
             return {"error": "Invalid input, required parameter is missing"}, 400
 
-        email = data["email"]
-        project_id = data["project_id"]
+        key_token = data["key_token"]
         qa_data = data["qa_data"]
 
         try:
             # adding QA to db
-            add_qa(email=email, project_id=project_id, qa_data=qa_data)
+            add_qa(key_token=key_token, qa_data=qa_data)
             return {
-                "response": f"QA set added against: set_id: {qa_data['set_id']}, email: {email}"
+                "response": f"QA set added against: {key_token} successfully."
             }, 200
         except Exception as e:
             return {"error": f"Error in /set-qa: {str(e)}"}, 400
@@ -470,15 +469,12 @@ class SetQA(Resource):
 input_set_baseline_model = api.model(
     "Baseline",
     {
-        "email": fields.String(
+        "key_token": fields.String(
             required=True,
-            description="Email address of the user",
-            example="umertest123@gmail.com",
+            description="user identifier",
+            example="12345abcdef67890",
         ),
         "set_id": fields.Integer(required=True, description="QA set ID", example=786),
-        "project_id": fields.Integer(
-            required=True, description="Project ID", example=22
-        ),
     },
 )
 # model for success responses
@@ -508,28 +504,25 @@ class SetBaseline(Resource):
         """
         Sets a baseline for the given email and set ID.
 
-        - **email**: Email address of the user
+        - **key_token**: "user identifier"
         - **set_id**: QA set ID
-        - **project_id**: Project ID
         """
         data = request.json
         if (
             not data
-            or "email" not in data
-            or "project_id" not in data
+            or "key_token" not in data
             or "set_id" not in data
         ):
             return {"error": "Invalid input, required parameter is missing"}, 400
 
-        email = data["email"]
+        key_token = data["key_token"]
         set_id = data["set_id"]
-        project_id = data["project_id"]
 
         try:
             # setting baseline (replace this with your actual logic)
-            update_baseline(email=email, project_id=project_id, set_id=set_id)
+            update_baseline(key_token=key_token, set_id=set_id)
             return {
-                "response": f"Baseline updated against: set_id: {set_id}, email: {email}"
+                "response": f"Baseline updated against: {key_token}"
             }, 200
         except ValueError as e:
             # Assuming a custom exception like ValueError for this case
@@ -541,17 +534,12 @@ class SetBaseline(Resource):
 
 # Model for updating QA
 input_update_qa_model = api.model(
-    "UPdate QA Request",
+    "UPdate QnA Request",
     {
-        "email": fields.String(
+        "key_token": fields.String(
             required=True,
-            description="Email address of the user",
-            example="umertest123@gmail.com",
-        ),
-        "project_id": fields.Integer(
-            required=True,
-            description="Project ID",
-            example=22,
+            description="user identifier",
+            example="12345abcdef67890",
         ),
         "qa_data": fields.Raw(
             required=True,
@@ -560,9 +548,15 @@ input_update_qa_model = api.model(
                 "qa_set": [
                     {
                         "id": 1,
-                        "question": "what is the capital of france?",
-                        "answer": "Paris",
-                    }
+                        "question": "what is the capital of Afghanistan?",
+                        "answer": "kabul",
+                    },
+                    {
+                        "id": 2,
+                        "question": "what is the capital of India?",
+                        "answer": "Delhi",
+                    },
+
                 ],
                 "set_id": 78,
             },
@@ -579,8 +573,8 @@ success_qa_model = api.model(
 )
 
 
-@api.route("/update-qa")
-class UpdateQA(Resource):
+@api.route("/update-qna")
+class UpdateQnA(Resource):
     @api.expect(input_update_qa_model)
     @api.doc(description="Update an existing QA set for a given user.")
     @api.response(200, "Success", success_qa_model)
@@ -590,8 +584,7 @@ class UpdateQA(Resource):
         """
         Update an existing QA set for a given email.
 
-        - **email**: Email address of the user
-        - **project_id**: Project ID
+        - **key_token**: User Identifier
         - **qa_data**: QA data object with set_id
         """
         # Get JSON data from the request
@@ -600,39 +593,34 @@ class UpdateQA(Resource):
         # Input parameter validation
         if (
             not data
-            or "email" not in data
-            or "project_id" not in data
+            or "key_token" not in data
             or "qa_data" not in data
         ):
             return {"error": "Invalid input, required parameter is missing"}, 400
 
-        email = data["email"]
+        key_token = data["key_token"]
         qa = data["qa_data"]
-        project_id = data["project_id"]
 
         try:
             # Attempt to update the QA set
-            update_qa(email=email, project_id=project_id, qa_data=qa)
+            update_qa(key_token=key_token, qa_data=qa)
         except Exception as e:
             print("Error in /update-qa route:", e)
             return {"error": f"Error in /update-qa: {str(e)}"}, 400
 
         return {
-            "response": f"QA set updated against: set_id: {qa['set_id']}, email: {email}"
+            "response": f"QA set updated against: {key_token} successfully."
         }, 200
 
 
 # Input Model for /compare-qa-sets
 compare_qa_sets_model = api.model(
-    "CompareQASets",
+    "CompareQnASets",
     {
-        "email": fields.String(
+        "key_token": fields.String(
             required=True,
-            description="The email address of the user",
-            example="umertest123@gmail.com",
-        ),
-        "project_id": fields.Integer(
-            required=True, description="The ID of the project", example=22
+            description="user identifier",
+            example="12345abcdef67890",
         ),
         "current_set_id": fields.Integer(
             required=True, description="The ID of the current QA set", example=786
@@ -676,18 +664,17 @@ response_compare_qa_sets_model = api.model(
 )
 
 
-@api.route("/compare-qa-sets")
-class CompareQASets(Resource):
+@api.route("/compare-qna-sets")
+class CompareQnASets(Resource):
     @api.expect(compare_qa_sets_model)
-    @api.doc(description="Compare two QA sets for a given email and project ID.")
+    @api.doc(description="Compare two QA sets for a user.")
     @api.response(200, "Success", response_compare_qa_sets_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
     @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
         """
-        Compare two QA sets for a given email and project ID.
-        - **email**: Email address of the user
-        - **project_id**: Project ID
+        Compare two QA sets for a user.
+        - **key_token** : User identifier.
         - **current_set_id**: ID of the current QA set
         - **baseline_set_id**: (optional) ID of the baseline QA set
         """
@@ -697,21 +684,18 @@ class CompareQASets(Resource):
         # Input parameter validation
         if (
             not data
-            or "email" not in data
-            or "project_id" not in data
+            or "key_token" not in data
             or "current_set_id" not in data
         ):
             return {"error": "Invalid input, required parameter is missing"}, 400
 
-        email = data["email"]
-        project_id = data["project_id"]
+        key_token = data["key_token"]
         current_set_id = data["current_set_id"]
         baseline_set_id = data.get("baseline_set_id", None)
 
         try:
             result = compare_qa_sets(
-                email=email,
-                project_id=project_id,
+                key_token=key_token,
                 current_set_id=current_set_id,
                 baseline_set_id=baseline_set_id,
             )
@@ -756,8 +740,7 @@ class GetUsageDetails(Resource):
     @api.doc(
         description="Get usage details for a given email and project ID.",
         params={
-            "email": "Email address of the user (required)",
-            "project_id": "Project ID (required)",
+            "key_token": "user identifier (required)"
         },
     )
     @api.response(200, "Success", output_get_usage_model)
@@ -765,27 +748,19 @@ class GetUsageDetails(Resource):
     @api.response(500, "Internal Server Error", error_response_model)
     def get(self):
         """
-        Get usage details for a given email and project ID.
-        - **email**: Email address of the user
-        - **project_id**: Project ID
+        Get usage details for a given user.
+        - **key_token**: User identifier.
         """
         # Get query parameters
-        email = request.args.get("email")
-        project_id = request.args.get("project_id")
+        key_token = request.args.get("key_token")
 
         # Input parameter validation
-        if not email or not project_id:
-            return {"error": "Invalid input, email and project_id are required"}, 400
-
-        try:
-            # Convert project_id to an integer
-            project_id = int(project_id)
-        except ValueError:
-            return {"error": "project_id must be a valid integer"}, 400
+        if not key_token:
+            return {"error": "Invalid input, key parameters are required"}, 400
 
         try:
             # Call your function to fetch usage details (the result would be dynamic based on the DB)
-            result = get_usage_details(email=email, project_id=project_id)
+            result = get_usage_details(key_token=key_token)
         except Exception as e:
             print("Error in /get-usage-details:", e)
             return {"error": f"Error in /get-usage-details: {str(e)}"}, 500

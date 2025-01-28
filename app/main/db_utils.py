@@ -75,7 +75,7 @@ def get_output_str_for_queries(scores_data: dict[dict]) -> str:
 
     return output_str
 
-def update_key_token(email: str, project_id: int):
+def update_key_token(email: str) -> tuple:
     """
     Updates the `key_token` field for a given email, ensuring the `key_token` is unique across the entire collection.
 
@@ -98,7 +98,7 @@ def update_key_token(email: str, project_id: int):
 
         # If the key_token is unique, update the document or create a new one
         result = mongo.db.credits.update_one(
-            {"email": email, "project_id": project_id},  # Query to find the document
+            {"email": email},  # Query to find the document
             {
                 "$set": {"key_token": key_token}
             },  # Update the key_token field
@@ -106,7 +106,7 @@ def update_key_token(email: str, project_id: int):
         )
         return result, key_token
     
-def check_token_limit(input_usage_str: str, email: str, project_id: int) -> bool:
+def check_token_limit(input_usage_str: str, key_token: str) -> bool:
     """
     Checks if the number of tokens in input_usage_str exceeds the token usage for the current month.
     Creates or updates the document if email or current month's token limit is missing.
@@ -125,14 +125,14 @@ def check_token_limit(input_usage_str: str, email: str, project_id: int) -> bool
     current_month_year = get_current_month_year()
 
     # Ensure the email document exists and has the current month's token limit
-    user_data = mongo.db.credits.find_one({"email": email, "project_id" : project_id})
+    user_data = mongo.db.credits.find_one({"key_token": key_token})
 
     if not user_data:
         # If the document doesn't exist, create it
-        raise ValueError(f"Document not found for email: {email} and project_id: {project_id}")
+        raise ValueError(f"Document not found for token: {key_token}")
     elif current_month_year not in user_data:
         # If the document exists but the current month's token usage is missing, update it
-        mongo.db.credits.update_one({"email": email, "project_id" : project_id},
+        mongo.db.credits.update_one({"key_token": key_token},
                                     {"$set": {current_month_year: {"token_used" : 0}}})
         tokens_used = 0
     else:
@@ -143,7 +143,7 @@ def check_token_limit(input_usage_str: str, email: str, project_id: int) -> bool
     # Compare input tokens with the stored limit
     return number_of_tokens + tokens_used <= DEFAULT_MAX_TOKEN_LIMIT
 
-def update_usage(input_str: str, output_str: str, processing_time: float, email: str, project_id: int, avg_queue_time: float = 0.0) -> None:
+def update_usage(input_str: str, output_str: str, processing_time: float, key_token: str, avg_queue_time: float = 0.0) -> None:
     """
     Updates the database with the token usage for the current month, increments the number of requests, 
     and updates average processing and queue times.
@@ -172,14 +172,14 @@ def update_usage(input_str: str, output_str: str, processing_time: float, email:
     current_month_year = get_current_month_year()
 
     # Retrieve the document for the email and project_id
-    user_data = mongo.db.credits.find_one({"email": email, "project_id": project_id})
+    user_data = mongo.db.credits.find_one({"key_token": key_token})
     print("\nUser Data before update: ")
     pprint(user_data)
 
     if not user_data:
         # If the document doesn't exist, raise an error
-        print(f"Document not found for email: {email} and project_id: {project_id}")
-        raise ValueError(f"Document not found for email: {email} and project_id: {project_id}")
+        print(f"Document not found for token: {key_token}")
+        raise ValueError(f"Document not found for token: {key_token}")
 
     # Initialize or update the current month's usage
     current_usage = user_data.get(current_month_year, {})
@@ -207,9 +207,9 @@ def update_usage(input_str: str, output_str: str, processing_time: float, email:
     # Perform the update operation in the database
     print("\nUpdated Fields:")
     pprint(update_fields)
-    mongo.db.credits.update_one({"email": email, "project_id": project_id}, {"$set": update_fields})
+    mongo.db.credits.update_one({"key_token": key_token}, {"$set": update_fields})
 
-def add_qa(email: str, project_id: str, qa_data: dict) -> None:
+def add_qa(key_token: str, qa_data: dict) -> None:
     """
     Adds a QA set to the user's database entry. If the QA set with the same set_id already exists, raises a ValueError.
 
@@ -221,6 +221,8 @@ def add_qa(email: str, project_id: str, qa_data: dict) -> None:
         ValueError: If the QA set with the same set_id already exists.
         Exception: If an error occurs while adding the QA set.
     """
+    print("qa_data: ")
+    pprint(qa_data)
     qa_set = qa_data.get("qa_set")
     set_id = qa_data.get("set_id")
 
@@ -229,18 +231,21 @@ def add_qa(email: str, project_id: str, qa_data: dict) -> None:
 
     try:
         # Retrieve the user's current QA sets
-        user_data = mongo.db.credits.find_one({"email": email, "project_id": project_id})
+        user_data = mongo.db.credits.find_one({"key_token" : key_token})
 
         if not user_data:
-            raise Exception(f"Document not found for email: {email} and project_id: {project_id}")
+            raise Exception(f"Document not found for user: {key_token}")
+        
+        email = user_data.get("email")
 
-        user_data = mongo.db.qa_data.find_one({"email": email, "project_id": project_id})
-        if not user_data.get("qa_sets"):
+        user_data = mongo.db.qa_data.find_one({"key_token": key_token}) or {}
+        
+        if not user_data.get("qa_sets", []):
             print("First QA Set.")
             # If this is the first QA set, add it as the baseline
             mongo.db.qa_data.insert_one({
                 "email": email,
-                "project_id" : project_id,
+                "key_token": key_token,
                 "qa_sets": [
                     {
                         "set_id": set_id,
@@ -251,6 +256,7 @@ def add_qa(email: str, project_id: str, qa_data: dict) -> None:
                 ]
             })
         else:
+            print("Not First QA Set.")
             # Check if the set_id already exists
             existing_set = next(
                 (entry for entry in user_data.get("qa_sets", []) if entry["set_id"] == set_id),
@@ -264,7 +270,7 @@ def add_qa(email: str, project_id: str, qa_data: dict) -> None:
                 # Add the new QA set with baseline set to False
                 current_datetime = get_current_datetime()
                 mongo.db.qa_data.update_one(
-                    {"email": email, "project_id" : project_id},
+                    {"key_token": key_token},
                     {"$push": {
                         "qa_sets": {
                             "set_id": set_id,
@@ -278,7 +284,7 @@ def add_qa(email: str, project_id: str, qa_data: dict) -> None:
         print(f"An error occurred while adding QA: {e}")
         raise Exception(f"Failed to add QA: {e}")
 
-def update_baseline(email: str, project_id: str, set_id: str) -> None:
+def update_baseline(key_token: str, set_id: str) -> None:
     """
     Updates the baseline QA set for the given user.
 
@@ -294,10 +300,10 @@ def update_baseline(email: str, project_id: str, set_id: str) -> None:
         raise ValueError("'set_id' must be provided to update the baseline.")
 
     try:
-        user_data = mongo.db.credits.find_one({"email": email, "project_id" : project_id})
+        user_data = mongo.db.qa_data.find_one({"key_token": key_token})
 
         if not user_data:
-            raise ValueError(f"No data found for email: {email} and project: {project_id}")
+            raise ValueError(f"No data found for {key_token}")
 
         # Check if the set_id exists in the user's data
         existing_set = next(
@@ -306,19 +312,19 @@ def update_baseline(email: str, project_id: str, set_id: str) -> None:
         )
 
         if not existing_set:
-            raise ValueError(f"Set ID '{set_id}' does not exist for email: {email}")
+            raise ValueError(f"Set ID '{set_id}' does not exist for user: {key_token}")
 
         # Reset all `baseline` flags to False
         # This is done by updating all `qa_sets` subdocuments in the user's data
         mongo.db.qa_data.update_many(
-            {"email": email},
+            {"key_token": key_token},
             {"$set": {"qa_sets.$[].baseline": False}}
         )
 
         # Update the provided set_id to be the new baseline
         # This is done by updating the specific `qa_sets` subdocument with the given set_id
         mongo.db.qa_data.update_one(
-            {"email": email, "project_id" : project_id, "qa_sets.set_id": set_id},
+            {"key_token": key_token, "qa_sets.set_id": set_id},
             {"$set": {"qa_sets.$.baseline": True}}
         )
 
@@ -326,7 +332,7 @@ def update_baseline(email: str, project_id: str, set_id: str) -> None:
         print(f"An error occurred while updating the baseline: {e}")
         raise Exception(f"Failed to update the baseline: {e}")
 
-def update_qa(email: str, project_id: str, qa_data: dict) -> None:
+def update_qa(key_token: str, qa_data: dict) -> None:
     """
     Updates an existing QA set.
 
@@ -348,23 +354,23 @@ def update_qa(email: str, project_id: str, qa_data: dict) -> None:
 
     try:
         # Find user data by email
-        user_data = mongo.db.credits.find_one({"email": email, "project_id" : project_id})
+        user_data = mongo.db.qa_data.find_one({"key_token": key_token})
 
         if not user_data:
-            raise ValueError(f"No data found for email: {email} and project id: {project_id}")
-
+            raise ValueError(f"No qa data found for user: {key_token}")
+        
         # Check if the set_id exists in the user's QA sets
         existing_set = next(
             (entry for entry in user_data.get("qa_sets", []) if entry["set_id"] == set_id),
             None
         )
         if not existing_set:
-            raise ValueError(f"Set ID '{set_id}' does not exist for email: {email} and project id: {project_id}")
+            raise ValueError(f"Set ID '{set_id}' does not exist for user: {key_token}")
 
         # Update the QA set and the last_updated timestamp
         current_datetime = get_current_datetime()
         mongo.db.qa_data.update_one(
-            {"email": email, "project_id" : project_id, "qa_sets.set_id": set_id},
+            {"key_token" : key_token, "qa_sets.set_id": set_id},
             {
                 "$set": {
                     "qa_sets.$.qa_set": qa_set,
@@ -411,16 +417,16 @@ def post_score_for_queries(payload: dict) -> dict:
         print(f"An error occurred while making the POST request: {e}")
         raise Exception(f"Failed to make the POST request: {e}")
     
-def compare_qa_sets(email: str, project_id: str, current_set_id: str, baseline_set_id: str = None) -> None:
+def compare_qa_sets(key_token: str, current_set_id: str, baseline_set_id: str = None) -> None:
     if not current_set_id:
         raise ValueError("'current_set_id' must be provided.")
     
     try:
         # Find user data by email and project_id
-        user_data = mongo.db.qa_data.find_one({"email": email, "project_id": project_id})
+        user_data = mongo.db.qa_data.find_one({"key_token" : key_token})
         
         if not user_data:
-            raise ValueError(f"No data found for email: {email} and project id: {project_id}")
+            raise ValueError(f"No data found for: {key_token}")
         
         # Retrieve baseline QA set
         baseline_set = None
@@ -514,13 +520,12 @@ def compare_qa_sets(email: str, project_id: str, current_set_id: str, baseline_s
         print(f"An error occurred while comparing QA sets: {e}")
         raise Exception(f"Failed to compare QA sets: {e}")
 
-def get_usage_details(email: str, project_id: int) -> dict:
+def get_usage_details(key_token: str) -> dict:
     """
     Retrieve usage details for a given email and project ID for the current month.
 
     Args:
-        email (str): The email address of the user.
-        project_id (int): The project ID associated with the user.
+        key_token : user identifier
 
     Returns:
         dict: A dictionary containing the usage details for the current month.
@@ -531,13 +536,13 @@ def get_usage_details(email: str, project_id: int) -> dict:
     """
     try:
         # Retrieve user data from the MongoDB collection
-        user_data = mongo.db.credits.find_one({"email": email, "project_id": project_id})
+        user_data = mongo.db.credits.find_one({"key_token" : key_token})
         print("user_data in get_usage_details: ")
         pprint(user_data)
 
         if not user_data:
             # Raise an error if no data is found
-            raise ValueError(f"No data found for email: {email} and project id: {project_id}")
+            raise ValueError(f"No data found for user: {key_token}")
 
         # Get the current month and year in 'Month_Year' format
         current_datetime = get_current_month_year()
