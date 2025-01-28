@@ -92,3 +92,69 @@ user_input_12 = """\
 """
 # Expected Score: {"Total rating": 2}
 # (Oversimplified, missing crucial scientific explanations and key concepts)
+
+
+user_input_13 = """\
+[question]: Explain the causes and consequences of the Great Depression in detail.
+[baseline]:
+The Great Depression was caused by multiple factors, including the stock market crash of 1929, bank failures, reduced consumer spending, and widespread unemployment. Other causes included uneven distribution of wealth, high tariffs like the Smoot-Hawley Tariff, and declining agricultural prices. The consequences were severe: millions lost jobs, GDP plummeted, and global trade shrank significantly. Social consequences included widespread poverty, the Dust Bowl exacerbating rural hardship, and political shifts, leading to the New Deal in the United States to address economic recovery and social reforms.
+
+[current]:
+The Great Depression began after the stock market crash in 1929, which led to widespread unemployment and economic collapse. Banks failed as people withdrew their money, and global trade dropped due to high tariffs. Farmers suffered due to low crop prices, and poverty spread. The New Deal was introduced in the U.S. to provide relief, recovery, and reform, helping the country recover economically.
+"""
+# score - 4
+
+user_input_14 = """\
+[question] Describe the steps involved in software development lifecycle (SDLC) and their importance.
+[baseline]
+The Software Development Lifecycle (SDLC) consists of several key steps:
+
+Planning: Defining project scope, requirements, and feasibility.
+Requirements Analysis: Gathering and analyzing functional and non-functional requirements.
+Design: Creating system architecture, UI/UX, and data flow diagrams.
+Development: Writing code based on the design.
+Testing: Identifying and fixing bugs to ensure functionality, security, and performance.
+Deployment: Delivering the software to production or end users.
+Maintenance: Addressing issues, making updates, and ensuring long-term usability.
+Each step ensures a structured approach, reduces risks, and aligns with business goals, improving the quality and efficiency of the software.
+[current]
+SDLC includes planning, analyzing requirements, designing, coding, testing, and deploying the software. Maintenance follows to fix issues or update the software. These steps ensure high-quality software is developed efficiently and meets user needs.
+"""
+# score - 3
+
+user_input_15 = """\
+[question] Analyze the differences between Keynesian and classical economic theories and their implications during economic recessions.
+[baseline]
+Keynesian economics emphasizes government intervention during economic recessions, advocating for fiscal stimulus and public spending to boost demand. In contrast, classical economics focuses on free-market principles, arguing that markets self-correct through supply and demand. Keynesians believe that recessions are caused by insufficient demand, requiring proactive measures, while classical theorists argue that recessions are temporary imbalances. The implications differ: Keynesian policies often involve deficit spending, while classical approaches advocate for minimal government interference. Modern economies often use a mix of both approaches, depending on the situation.
+
+[current]
+Keynesian economics supports government intervention to increase demand during recessions, while classical economics relies on free markets to self-correct. Keynesians advocate for public spending, while classical theorists oppose government interference.
+"""
+# score - 4
+
+user_input_16 = """\
+[question]: Explain the causes and consequences of the Great Depression in detail.
+[baseline]:
+The Great Depression was caused by multiple factors, including the stock market crash of 1929, bank failures, reduced consumer spending, and widespread unemployment. Other causes included uneven distribution of wealth, high tariffs like the Smoot-Hawley Tariff, and declining agricultural prices. The consequences were severe: millions lost jobs, GDP plummeted, and global trade shrank significantly. Social consequences included widespread poverty, the Dust Bowl exacerbating rural hardship, and political shifts, leading to the New Deal in the United States to address economic recovery and social reforms.
+
+[current]:
+The Great Depression happened because the stock market failed, and people became poor.
+"""
+# score - 1
+
+user_input_17 = """\
+question: Discuss the ethical dilemmas surrounding artificial intelligence and its implications on society.
+baseline:
+Artificial intelligence presents several ethical dilemmas. Key issues include bias in algorithms, lack of transparency in decision-making (black-box AI), and privacy concerns with data usage. The automation of jobs raises concerns about unemployment and economic disparity. AI's use in surveillance can lead to erosion of personal freedoms. Autonomous weapons raise questions about accountability in warfare. Societal implications include the need for clear regulatory frameworks to ensure ethical AI deployment, fairness, and minimizing harm. Additionally, there's a moral question about the rights of AI entities, as they become more advanced, and the potential for AI to outpace human control.
+
+current:
+AI is dangerous because it takes people’s jobs and can be biased.
+"""
+# score - 2
+
+user_input_18 = """\
+question: Explain the concept of Object-Oriented Programming and its core principles.
+baseline: Object-Oriented Programming (OOP) is a programming paradigm based on the concept of objects, which contain data and methods. The core principles are encapsulation, abstraction, inheritance, and polymorphism, enabling modularity and reusability in code.
+current: Object-Oriented Programming is a way of organizing code using objects. It includes key concepts like encapsulation and inheritance to make code reusable.
+"""
+# score - 3

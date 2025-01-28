@@ -332,4 +332,43 @@ def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager
     scores_data["avg_queue_time"] = round(sum(time_list) / len(time_list), 2)
     return scores_data
 
+def get_score_from_rag(base_url: str, questions: dict) -> dict:
+    """
+    Calls the RAG model's endpoint to get the answer for a given question.
+
+    Args:
+        base_url (str): The base URL of the RAG model's endpoint.
+        questions (dict): A dictionary where the keys are the question IDs and the values are the questions.
+
+    Returns:
+        dict: A dictionary where the keys are the question IDs and the values are the answers.
+    """
+    if not questions:
+        raise ValueError("Pass value questions data")
     
+    base_url = base_url + '/get_rag_response'
+
+    questions_list = []
+    for ques_id, question in questions.items():
+        questions_list.append(
+            {
+                "id" : ques_id,
+                "question" : question
+            }
+        )
+
+    try:
+        payload = {
+            "questions" : questions_list
+        }
+        response = requests.post(base_url, json=payload).json()
+    except Exception as e:
+        raise Exception(f"Error posting request to: {base_url}")
+    
+    answer_list = response.get("answer", [])
+
+    answers = {}
+    for ans in answer_list:
+        answers[f"{ans.get('id', 'NF')}"] = f"{ans.get('answer')}"
+
+    return answers
