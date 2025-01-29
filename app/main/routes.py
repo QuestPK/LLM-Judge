@@ -17,6 +17,7 @@ from .db_utils import (
     update_qa,
     compare_qa_sets,
     get_usage_details,
+    get_set_ids
 )
 from .queues import queue_manager
 
@@ -278,6 +279,7 @@ class GetScoreForQueries(Resource):
 
         key_token = data.get("key_token", "")
         queries_data = data.get("queries_data")
+        summary_accepted = data.get("summary_accepted", True)
 
         try:
             input_usage_str = get_input_str_for_queries(queries_data)
@@ -297,7 +299,7 @@ class GetScoreForQueries(Resource):
             return {"error": "Queue Full"}, 400
 
         try:
-            queue_manager.create_and_insert_queries(queries_data)
+            queue_manager.create_and_insert_queries(queries_data, summary_accepted=summary_accepted)
 
             start_time = time.time()
             scores_data = get_scores_for_queries(
@@ -769,18 +771,15 @@ input_get_answer_from_rag = api.model(
         ),
     },
 )
-
-# Output format model for answers
-output_get_answer_from_rag_format = api.model(
-    "OutputModel",
-    {
-        "1": fields.String(description="Answer 1", example="It's answer"),
-        "2": fields.String(description="Answer 2", example="It's answer"),
-    },
-)
 # response model
 response_get_answer_from_rag_model = api.model(
-    "Answer", {"answer": fields.Nested(output_get_answer_from_rag_format)}
+    "Answer", 
+    {
+        "answer": fields.Raw({
+            "1" : "It's answer",
+            "2" : "It's answer"
+        })
+    }
 )
 
 
@@ -818,3 +817,58 @@ class GetAnswersFromRag(Resource):
 
         # Return the answers
         return {"answer": result}, 200
+
+
+output_get_set_ids_model = api.model(
+    "GetSetIdss",
+    {
+        "response" : fields.Raw(
+            [
+                {
+                    "set_id" : 23,
+                    "qa_set" : [
+                        {
+                            "id" : 1,
+                            "question" : "question",
+                            "answer" : "answer",
+                        },
+                        {
+                            "id" : 2,
+                            "question" : "question",
+                            "answer" : "answer",
+                        },
+                    ]
+                }
+            ]
+        )
+    }
+)
+@api.route("/get-set-ids")
+class GetSetIds(Resource):
+    @api.response(200, "Success", output_get_set_ids_model)
+    @api.response(400, "Invalid input / Not found", error_response_model)
+    @api.response(500, "Internal Server Error", error_response_model)
+    @api.doc(
+        description="Get set ids for user.",
+        params={"key_token": "user identifier (required)"},
+    )
+    def get(self):
+        # Get query parameters
+        key_token = request.args.get("key_token")
+
+        # Input parameter validation
+        if not key_token:
+            return {"error": "Invalid input, key parameters are required"}, 400
+        
+        print("Toke: ", key_token)
+        try:
+            # Call your function to fetch usage details (the result would be dynamic based on the DB)
+            result = get_set_ids(key_token=key_token)
+        except Exception as e:
+            print("Error in /get-set-ids:", e)
+            return {"error": f"Error in /get-set-ids: {str(e)}"}, 00
+
+        return {
+            "response": result,
+            "message": "Set IDs retreived",
+        }, 200

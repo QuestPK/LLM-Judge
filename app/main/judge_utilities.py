@@ -154,6 +154,7 @@ def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
         result = json.loads(response.get("message", {}).get("content", ""))
     except json.JSONDecodeError as e:
         print("Issue decoding JSON response:", e)
+        print(response.get("message", {}).get("content", ""))
         raise Exception("Failed to decode JSON response" + str(e))
  
     total_rating = result.get("Total rating", 0)
@@ -188,6 +189,7 @@ def get_score_data(question: str, baseline: str, current: str, summary_accepted:
     score_data = get_score_from_llm(question, baseline, current)
 
     if not summary_accepted:
+        print("Question: ", question)
         is_summary = check_if_summary(baseline, current)
 
         if is_summary:
@@ -252,11 +254,6 @@ def process_items(items_list: list[dict]) -> dict:
     """
     scores_retrieved = {}
 
-    # test seq processing
-    # results = []
-    # for item in items_list:
-    #     results.append(process_single_item(item))
-
     with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
         results = list(executor.map(process_single_item, items_list))
 
@@ -297,18 +294,15 @@ def get_scores_for_queries(queries_data: dict, queue_manager: QueueManager) -> D
     
     time_list = []
     while True:
-        print("In Loop")
         items = queue_manager.get_items_to_process()
         queue_manager.delete_empty_queues()
-
-        print("Items")
-        print(items)
 
         # No items to process
         if not items:
             break
         
         start_time = time.time()
+
         # process the retreived items
         scores = process_items(items)
 
@@ -330,10 +324,9 @@ def get_scores_for_queries(queries_data: dict, queue_manager: QueueManager) -> D
             print("Breaking...")
             break
         
-        # import time
-        # time.sleep(2)
     print("Avg queue time: ", time_list)
     scores_data["avg_queue_time"] = round(sum(time_list) / len(time_list), 2)
+
     return scores_data
 
 def get_score_from_rag(base_url: str, questions: dict) -> dict:

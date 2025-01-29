@@ -429,7 +429,22 @@ def post_score_for_queries(payload: dict) -> dict:
         print(f"An error occurred while making the POST request: {e}")
         raise Exception(f"Failed to make the POST request: {e}")
     
-def compare_qa_sets(key_token: str, current_set_id: str, baseline_set_id: str = None) -> None:
+def compare_qa_sets(key_token: str, current_set_id: str, baseline_set_id: str = None) -> dict:
+    """
+    Compare two QA sets for a user and return the comparison results.
+
+    Args:
+        key_token : user identifier
+        current_set_id : ID of the current QA set
+        baseline_set_id : (optional) ID of the baseline QA set
+
+    Returns:
+        dict: A dictionary containing the comparison scores.
+
+    Raises:
+        ValueError: If no data is found for the provided email and project ID.
+        Exception: If an error occurs while comparing QA sets.
+    """
     if not current_set_id:
         raise ValueError("'current_set_id' must be provided.")
     
@@ -570,3 +585,37 @@ def get_usage_details(key_token: str) -> dict:
         # Print and raise an exception if an error occurs
         print(f"An error occurred while getting usage details: {e}")
         raise Exception(f"Failed to get usage details: {e}")
+
+def get_set_ids(key_token: str) -> list[dict]:
+    """
+    Retrieve all QA set IDs and their data for a given user.
+
+    Args:
+        key_token (str): User identifier.
+
+    Returns:
+        List[Dict]: A list of dictionaries containing the QA set IDs and their corresponding QA sets.
+    """
+    # Find user data by email and project_id
+    user_data = mongo.db.qa_data.find_one({"key_token" : key_token})
+    
+    if not user_data:
+        raise ValueError(f"No user found for: {key_token}")
+    
+    if "qa_sets" not in user_data:
+        raise ValueError("No qa sets data available.")
+    
+    # Retrieve the QA sets from the user data
+    qa_sets = user_data["qa_sets"]
+    # pprint(qa_sets)
+    
+    # Create a list of dictionaries containing the QA set IDs and their corresponding QA sets
+    set_ids = [
+        {
+            "set_id" : qa_set.get("set_id", None),  # QA set ID
+            "qa_set" : qa_set.get("qa_set", [])    # QA set
+        }
+        for qa_set in qa_sets
+    ]
+    
+    return set_ids

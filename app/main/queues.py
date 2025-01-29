@@ -8,7 +8,7 @@ class QueueManager:
         self.current_queue = -1
         self.lock = threading.Lock()
 
-    def display_all_items(self):
+    def display_all_items(self) -> None:
         """Display all items in all queues."""
         if self.queues:
             for queue in self.queues:
@@ -62,20 +62,22 @@ class QueueManager:
         """Insert a queue into the queue manager."""
         self.queues.append(queue)
 
-    def create_and_insert_queries(self, items: dict):
+    def create_and_insert_queries(self, items: dict, summary_accepted: bool = True) -> None:
         queue = Queue()
 
         # item -> {"query_id" : {"question": "question string", "baseline": "baseline string", "current": "current string", "summary_accepted": true}}
         for query_id, value in items.items():
+            value["summary_accepted"] = summary_accepted
             queue.put({query_id: value})
+            # print(f"{query_id} : {value}")
         self.insert(queue)
     
-    def reset_counter(self):
+    def reset_counter(self) -> None:
         """Reset the current queue counter to 0 if it exceeds the number of queues."""
         if self.current_queue >= len(self.queues):
             self.current_queue = 0
 
-    def delete_empty_queues(self):
+    def delete_empty_queues(self) -> None:
         """Delete empty queues from the queue manager."""
         self.queues = [q for q in self.queues if not q.empty()]
         if self.current_queue >= len(self.queues):
