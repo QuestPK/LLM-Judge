@@ -10,14 +10,16 @@ from .db_utils import (
     update_key_token,
     update_usage,
     check_token_limit,
-    get_input_str_for_queries,
-    get_output_str_for_queries,
     add_qa,
     update_baseline,
     update_qa,
     compare_qa_sets,
     get_usage_details,
     get_set_ids
+)
+from .utils import (
+    get_input_str_for_queries,
+    get_output_str_for_queries
 )
 from .queues import queue_manager
 
@@ -72,7 +74,8 @@ output_get_score_model = api.model(
     "OutputGetScore",
     {
         "score": fields.Raw(
-            {
+            description="Output get score data.",
+            example={
                 "score": "Integer Score",
                 "reason": "Reason of score",
                 "message": "API message",
@@ -268,6 +271,7 @@ class GetScoreForQueries(Resource):
         Calculate scores for multiple queries.
         - **key_token**: User identifier.
         - **query_data**: Object containing the question, baseline, and current text.
+        - **summary_accepted** (Optional bool) : If want to discard summaries set to false, default true. 
         """
         data = request.get_json()
 
@@ -692,13 +696,17 @@ output_get_usage_model = api.model(
             required=True,
             description="Usage details containing token, processing, and request data",
             example={
-                "token_used": 570,
-                "avg_input_token": 93,
-                "avg_output_token": 192,
-                "avg_processing_time": 30.44,
-                "avg_queue_time": 30.43,
-                "number_of_requests": 2,
-                "processing_time": 29.98,
+                "token_used": 710,
+                "avg_input_token": 95,
+                "avg_output_token": 141.67,
+                "avg_processing_time": 25.39,
+                "avg_queue_time": 25.39,
+                "number_of_requests": 3,
+                "last_request_processing_time": 25.82,
+                "total_input_token": 285,
+                "total_output_token": 425,
+                "total_processing_time": 76.18,
+                "total_queue_time": 76.16
             },
         ),
         "message": fields.String(
@@ -775,7 +783,9 @@ input_get_answer_from_rag = api.model(
 response_get_answer_from_rag_model = api.model(
     "OutputGetAnswerFromRag", 
     {
-        "answer": fields.Raw({
+        "answer": fields.Raw(
+            description="Answers from rag",
+            example={
             "1" : "It's answer",
             "2" : "It's answer"
         })
@@ -853,14 +863,17 @@ class GetSetIds(Resource):
         params={"key_token": "user identifier (required)"},
     )
     def get(self):
+        """
+        Get set ids for user.
+        - **key_token**: User identifier.
+        """
         # Get query parameters
         key_token = request.args.get("key_token")
 
         # Input parameter validation
         if not key_token:
             return {"error": "Invalid input, key parameters are required"}, 400
-        
-        print("Toke: ", key_token)
+    
         try:
             # Call your function to fetch usage details (the result would be dynamic based on the DB)
             result = get_set_ids(key_token=key_token)
