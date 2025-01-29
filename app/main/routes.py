@@ -38,7 +38,7 @@ get_score_model = api.model(
     {
         "query_data": fields.Nested(
             api.model(
-                "QueryData",
+                "GetScoreQueryData",
                 {
                     "question": fields.String(
                         required=True,
@@ -180,11 +180,11 @@ get_score_for_queries_model = api.model(
         "queries_data": 
             fields.Nested(
                 api.model(
-                    "QueryItem",
+                    "GSForQueriesQueryItem",
                     {
                         "123": fields.Nested(
                             api.model(
-                                "QueryDetails",
+                                "GSFQIQueryDetails",
                                 {
                                     "question": fields.String(
                                         required=True, description="The question string"
@@ -205,7 +205,7 @@ get_score_for_queries_model = api.model(
                         ),
                         "456": fields.Nested(
                             api.model(
-                                "QueryDetails",
+                                "GSFQIQueryDetails",
                                 {
                                     "question": fields.String(
                                         required=True, description="The question string"
@@ -234,7 +234,7 @@ get_score_for_queries_model = api.model(
 )
 # output /get-scores-for-queries
 response_get_scores_for_queries = api.model(
-    "ScoresContainer",
+    "OutputGetScoreForQueries",
     {
         "scores": fields.Raw(
             required=True,
@@ -388,7 +388,7 @@ class GetKeyToken(Resource):
 
 
 input_set_qa_request_model = api.model(
-    "Set QnA",
+    "SetQnA",
     {
         "key_token": fields.String(
             required=True,
@@ -418,7 +418,7 @@ input_set_qa_request_model = api.model(
 )
 
 set_qna_output_model = api.model(
-    "Set QnA Output",
+    "SetQnAOutput",
     {
         "response": fields.String(
             description="Success message", example="QA set added successfully."
@@ -459,7 +459,7 @@ class SetQnA(Resource):
 
 # model for baseline input data
 input_set_baseline_model = api.model(
-    "Baseline",
+    "SetBaseline",
     {
         "key_token": fields.String(
             required=True,
@@ -471,7 +471,7 @@ input_set_baseline_model = api.model(
 )
 # model for success responses
 success_response_model = api.model(
-    "SuccessResponse",
+    "OutputSetBaseline",
     {
         "response": fields.String(
             description="Success message", example="Baseline updated successfully"
@@ -520,7 +520,7 @@ class SetBaseline(Resource):
 
 # Model for updating QA
 input_update_qa_model = api.model(
-    "UPdate QnA Request",
+    "UpdateQnA",
     {
         "key_token": fields.String(
             required=True,
@@ -549,7 +549,7 @@ input_update_qa_model = api.model(
     },
 )
 success_qa_model = api.model(
-    "SuccessResponse",
+    "OutputUpdateQnA",
     {
         "response": fields.String(
             description="Success message", example="QA set updated successfully"
@@ -614,7 +614,7 @@ compare_qa_sets_model = api.model(
 
 # Output Model for /compare-qa-sets
 response_compare_qa_sets_model = api.model(
-    "Data",
+    "OutputCompareQnASets",
     {
         "response": fields.Raw(
             required=True,
@@ -686,7 +686,7 @@ class CompareQnASets(Resource):
 
 # Usage details response defined using fields.Raw
 output_get_usage_model = api.model(
-    "OutputUsageRaw",
+    "OutputGetUsageDetails",
     {
         "response": fields.Raw(
             required=True,
@@ -746,7 +746,7 @@ class GetUsageDetails(Resource):
 
 # questions format
 input_get_answer_from_rag_question_format = api.model(
-    "Questions",
+    "QuestionGetAnswerFromRag",
     {
         "1": fields.String(description="Question 1", example="What is photosynthesis"),
         "2": fields.String(
@@ -757,7 +757,7 @@ input_get_answer_from_rag_question_format = api.model(
 
 # input payload mdoel
 input_get_answer_from_rag = api.model(
-    "InputPayload",
+    "GetAnswerFromRag",
     {
         "base_url": fields.String(
             required=True,
@@ -773,7 +773,7 @@ input_get_answer_from_rag = api.model(
 )
 # response model
 response_get_answer_from_rag_model = api.model(
-    "Answer", 
+    "OutputGetAnswerFromRag", 
     {
         "answer": fields.Raw({
             "1" : "It's answer",
@@ -820,7 +820,7 @@ class GetAnswersFromRag(Resource):
 
 
 output_get_set_ids_model = api.model(
-    "GetSetIdss",
+    "GetSetIds",
     {
         "response" : fields.Raw(
             [
