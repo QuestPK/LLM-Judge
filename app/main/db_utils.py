@@ -24,7 +24,7 @@ def get_current_datetime() -> str:
     """
     return datetime.now().strftime("%d-%m-%Y_%H:%M:%S")  # Example: '21-01-2025_12:00'
 
-def get_input_str_for_queries(queries_list: list[dict]) -> str:
+def get_input_str_for_queries(queries_data: dict) -> str:
     """
     Constructs a single input string from a list of query dictionaries.
 
@@ -38,16 +38,13 @@ def get_input_str_for_queries(queries_list: list[dict]) -> str:
         for each query in the list, separated by newlines.
     """
     input_str = ""
+    for query_id, query in queries_data.items():
+        question = query.get("question", "")
+        baseline = query.get("baseline", "")
+        current = query.get("current", "")
 
-    for query_data in queries_list:
-        # Each query_data is expected to be a dictionary with a single key-value pair
-        for query_id, query in query_data.items():
-            question = query.get("question", "")
-            baseline = query.get("baseline", "")
-            current = query.get("current", "")
-
-            # Concatenate the question, baseline, and current response with newline separators
-            input_str += f"{question}\n{baseline}\n{current}\n"
+        # Concatenate the question, baseline, and current response with newline separators
+        input_str += f"{question}\n{baseline}\n{current}\n"
 
     return input_str
 

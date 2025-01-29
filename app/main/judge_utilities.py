@@ -265,7 +265,7 @@ def process_items(items_list: list[dict]) -> dict:
 
     return scores_retrieved
 
-def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager) -> Dict[str, dict]:
+def get_scores_for_queries(queries_data: dict, queue_manager: QueueManager) -> Dict[str, dict]:
     """
     Retrieve scores for a list of queries using the provided queue manager.
 
@@ -297,8 +297,12 @@ def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager
     
     time_list = []
     while True:
+        print("In Loop")
         items = queue_manager.get_items_to_process()
         queue_manager.delete_empty_queues()
+
+        print("Items")
+        print(items)
 
         # No items to process
         if not items:
@@ -316,7 +320,7 @@ def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager
         # add the scores
         scores_data.update({"scores": scores})
 
-        query_ids = [list(item.keys()) for item in queries_list][0]
+        query_ids = list(queries_data.keys())
         
         # if all queries scores have been retrieved
         print("\nQuery ids ",query_ids)
@@ -334,39 +338,49 @@ def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager
 
 def get_score_from_rag(base_url: str, questions: dict) -> dict:
     """
-    Calls the RAG model's endpoint to get the answer for a given question.
+    Calls the RAG model's endpoint to retrieve answers for given questions.
 
     Args:
         base_url (str): The base URL of the RAG model's endpoint.
-        questions (dict): A dictionary where the keys are the question IDs and the values are the questions.
+        questions (dict): A dictionary where keys are question IDs and values are the questions.
 
     Returns:
-        dict: A dictionary where the keys are the question IDs and the values are the answers.
+        dict: A dictionary where keys are question IDs and values are the answers from the RAG model.
+    
+    Raises:
+        ValueError: If questions data is not provided.
+        Exception: If there's an error in posting the request.
     """
     if not questions:
         raise ValueError("Pass value questions data")
     
+    # Construct the endpoint URL
     base_url = base_url + '/get_rag_response'
 
+    # Prepare the list of questions for the request payload
     questions_list = []
     for ques_id, question in questions.items():
         questions_list.append(
             {
-                "id" : ques_id,
-                "question" : question
+                "id": ques_id,
+                "question": question
             }
         )
 
     try:
+        # Prepare the payload and make the POST request
         payload = {
-            "questions" : questions_list
+            "questions": questions_list
         }
         response = requests.post(base_url, json=payload).json()
     except Exception as e:
+        # Handle exceptions in the request process
         raise Exception(f"Error posting request to: {base_url}")
     
+    # Extract answers from the response
     answer_list = response.get("answer", [])
 
+    # Map question IDs to their respective answers
     answers = {}
     for ans in answer_list:
         answers[f"{ans.get('id', 'NF')}"] = f"{ans.get('answer')}"

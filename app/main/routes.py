@@ -111,7 +111,7 @@ class GetScore(Resource):
         if data is None:
             return {"error": "No valid JSON data found in the request."}, 400
 
-        if "query_data" not in data or "key_token" not in data :
+        if "query_data" not in data or "key_token" not in data:
             return {"error": "Invalid, input parameters missing."}, 400
 
         query_data = data.get("query_data")
@@ -129,8 +129,7 @@ class GetScore(Resource):
             input_usage_str = f"{question}\n{baseline}\n{current}"
             try:
                 is_under_limit = check_token_limit(
-                    input_usage_str=input_usage_str, 
-                    key_token=key_token
+                    input_usage_str=input_usage_str, key_token=key_token
                 )
             except Exception as e:
                 return {"error": str(e)}, 400
@@ -160,7 +159,7 @@ class GetScore(Resource):
                 input_str=input_usage_str,
                 output_str=output_usage_str,
                 processing_time=processing_time,
-                key_token=key_token
+                key_token=key_token,
             )
 
             return {
@@ -177,7 +176,7 @@ class GetScore(Resource):
 get_score_for_queries_model = api.model(
     "GetScoreForQueries",
     {
-        "queries_data": fields.List(
+        "queries_data": 
             fields.Nested(
                 api.model(
                     "QueryItem",
@@ -194,7 +193,7 @@ get_score_for_queries_model = api.model(
                                     ),
                                     "current": fields.String(
                                         required=True, description="The current string"
-                                    )
+                                    ),
                                 },
                             ),
                             example={
@@ -226,7 +225,6 @@ get_score_for_queries_model = api.model(
                         ),
                     },
                 )
-            )
         ),
         "key_token": fields.String(
             required=True, description="User key token", example="12345abcdef67890"
@@ -303,7 +301,7 @@ class GetScoreForQueries(Resource):
 
             start_time = time.time()
             scores_data = get_scores_for_queries(
-                queries_list=queries_data, queue_manager=queue_manager
+                queries_data=queries_data, queue_manager=queue_manager
             )
             end_time = time.time()
             processing_time = end_time - start_time
@@ -363,12 +361,10 @@ class GetKeyToken(Resource):
         data = request.json
 
         if not data or "email" not in data:
-            return {
-                "error": "Invalid input, 'email' key is required"
-            }, 400
+            return {"error": "Invalid input, 'email' key is required"}, 400
 
         email = data["email"]
-    
+
         result, new_key_token = update_key_token(email)
 
         if result.matched_count > 0:
@@ -411,7 +407,7 @@ input_set_qa_request_model = api.model(
                         "id": 2,
                         "question": "What is the capital of Pakistan?",
                         "answer": "Pakistan",
-                    }
+                    },
                 ],
                 "set_id": 78,
             },
@@ -445,11 +441,7 @@ class SetQnA(Resource):
         - **qa_data**: QA data object with set_id
         """
         data = request.json
-        if (
-            not data
-            or "key_token" not in data
-            or "qa_data" not in data
-        ):
+        if not data or "key_token" not in data or "qa_data" not in data:
             return {"error": "Invalid input, required parameter is missing"}, 400
 
         key_token = data["key_token"]
@@ -458,9 +450,7 @@ class SetQnA(Resource):
         try:
             # adding QA to db
             add_qa(key_token=key_token, qa_data=qa_data)
-            return {
-                "response": f"QA set added against: {key_token} successfully."
-            }, 200
+            return {"response": f"QA set added against: {key_token} successfully."}, 200
         except Exception as e:
             return {"error": f"Error in /set-qa: {str(e)}"}, 400
 
@@ -508,11 +498,7 @@ class SetBaseline(Resource):
         - **set_id**: QA set ID
         """
         data = request.json
-        if (
-            not data
-            or "key_token" not in data
-            or "set_id" not in data
-        ):
+        if not data or "key_token" not in data or "set_id" not in data:
             return {"error": "Invalid input, required parameter is missing"}, 400
 
         key_token = data["key_token"]
@@ -521,9 +507,7 @@ class SetBaseline(Resource):
         try:
             # setting baseline (replace this with your actual logic)
             update_baseline(key_token=key_token, set_id=set_id)
-            return {
-                "response": f"Baseline updated against: {key_token}"
-            }, 200
+            return {"response": f"Baseline updated against: {key_token}"}, 200
         except ValueError as e:
             # Assuming a custom exception like ValueError for this case
             return {"error": f"Error: {str(e)}"}, 400
@@ -556,7 +540,6 @@ input_update_qa_model = api.model(
                         "question": "what is the capital of India?",
                         "answer": "Delhi",
                     },
-
                 ],
                 "set_id": 78,
             },
@@ -591,11 +574,7 @@ class UpdateQnA(Resource):
         data = request.json
 
         # Input parameter validation
-        if (
-            not data
-            or "key_token" not in data
-            or "qa_data" not in data
-        ):
+        if not data or "key_token" not in data or "qa_data" not in data:
             return {"error": "Invalid input, required parameter is missing"}, 400
 
         key_token = data["key_token"]
@@ -608,9 +587,7 @@ class UpdateQnA(Resource):
             print("Error in /update-qa route:", e)
             return {"error": f"Error in /update-qa: {str(e)}"}, 400
 
-        return {
-            "response": f"QA set updated against: {key_token} successfully."
-        }, 200
+        return {"response": f"QA set updated against: {key_token} successfully."}, 200
 
 
 # Input Model for /compare-qa-sets
@@ -682,11 +659,7 @@ class CompareQnASets(Resource):
         data = request.json
 
         # Input parameter validation
-        if (
-            not data
-            or "key_token" not in data
-            or "current_set_id" not in data
-        ):
+        if not data or "key_token" not in data or "current_set_id" not in data:
             return {"error": "Invalid input, required parameter is missing"}, 400
 
         key_token = data["key_token"]
@@ -739,9 +712,7 @@ output_get_usage_model = api.model(
 class GetUsageDetails(Resource):
     @api.doc(
         description="Get usage details for a given email and project ID.",
-        params={
-            "key_token": "user identifier (required)"
-        },
+        params={"key_token": "user identifier (required)"},
     )
     @api.response(200, "Success", output_get_usage_model)
     @api.response(400, "Invalid input / Not found", error_response_model)

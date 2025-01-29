@@ -62,15 +62,12 @@ class QueueManager:
         """Insert a queue into the queue manager."""
         self.queues.append(queue)
 
-    def create_and_insert_queries(self, items_list: list[dict]):
+    def create_and_insert_queries(self, items: dict):
         queue = Queue()
 
         # item -> {"query_id" : {"question": "question string", "baseline": "baseline string", "current": "current string", "summary_accepted": true}}
-        for item in items_list:
-            query_id = list(item.keys())[0]
-        
-            for query_id, value in item.items():
-                queue.put({query_id: value})
+        for query_id, value in items.items():
+            queue.put({query_id: value})
         self.insert(queue)
     
     def reset_counter(self):
