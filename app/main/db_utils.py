@@ -104,6 +104,19 @@ def update_key_token(email: str) -> tuple:
             },  # Update the key_token field
             upsert=True,  # Insert if the document does not exist
         )
+
+        qa_data_exist = mongo.db.credits.find_one({"key_token": key_token})
+
+        if qa_data_exist:
+            #     If the key_token is unique, update the document or create a new one
+            result = mongo.db.qa_data.update_one(
+                {"email": email},  # Query to find the document
+                {
+                    "$set": {"key_token": key_token, "email": email}
+                },  # Update the key_token field
+                upsert=True,  # Insert if the document does not exist
+            )
+
         return result, key_token
     
 def check_token_limit(input_usage_str: str, key_token: str) -> bool:
@@ -231,30 +244,29 @@ def add_qa(key_token: str, qa_data: dict) -> None:
 
     try:
         # Retrieve the user's current QA sets
-        user_data = mongo.db.credits.find_one({"key_token" : key_token})
+        user_data = mongo.db.qa_data.find_one({"key_token" : key_token})
 
         if not user_data:
             raise Exception(f"Document not found for user: {key_token}")
         
         email = user_data.get("email")
-
-        user_data = mongo.db.qa_data.find_one({"key_token": key_token}) or {}
         
         if not user_data.get("qa_sets", []):
             print("First QA Set.")
             # If this is the first QA set, add it as the baseline
-            mongo.db.qa_data.insert_one({
-                "email": email,
-                "key_token": key_token,
-                "qa_sets": [
-                    {
-                        "set_id": set_id,
-                        "qa_set": qa_set,
-                        "last_updated": get_current_datetime(),
-                        "baseline": True
-                    }
-                ]
-            })
+            mongo.db.qa_data.update_one(
+                {"email": email, "key_token": key_token},
+                {"$set": {
+                    "qa_sets": [
+                        {
+                            "set_id": set_id,
+                            "qa_set": qa_set,
+                            "last_updated": get_current_datetime(),
+                            "baseline": True
+                        }
+                    ]
+                }}
+            )
         else:
             print("Not First QA Set.")
             # Check if the set_id already exists
@@ -305,6 +317,9 @@ def update_baseline(key_token: str, set_id: str) -> None:
         if not user_data:
             raise ValueError(f"No data found for {key_token}")
 
+        if "qa_sets" not in user_data:
+            raise ValueError(f"No 'qa_sets' found for user: {key_token}")
+        
         # Check if the set_id exists in the user's data
         existing_set = next(
             (entry for entry in user_data.get("qa_sets", []) if entry["set_id"] == set_id),
@@ -426,7 +441,10 @@ def compare_qa_sets(key_token: str, current_set_id: str, baseline_set_id: str = 
         user_data = mongo.db.qa_data.find_one({"key_token" : key_token})
         
         if not user_data:
-            raise ValueError(f"No data found for: {key_token}")
+            raise ValueError(f"No qa data found for: {key_token}")
+        
+        if "qa_sets" not in user_data:
+            raise ValueError(f"No qa sets found for: {key_token}")
         
         # Retrieve baseline QA set
         baseline_set = None
@@ -436,6 +454,9 @@ def compare_qa_sets(key_token: str, current_set_id: str, baseline_set_id: str = 
                 (qa_set for qa_set in user_data["qa_sets"] if qa_set["set_id"] == int(baseline_set_id)), 
                 None
             )
+            # is_baseline = baseline_set.get("baseline", False)
+            # if not is_baseline:
+            #     raise ValueError(f"Set with set_id {baseline_set_id} is not baseline.")
         else:
             # Find the baseline set where `baseline` is True
             baseline_set = next(
@@ -487,8 +508,7 @@ def compare_qa_sets(key_token: str, current_set_id: str, baseline_set_id: str = 
         # Prepare the payload for the POST request
         payload = {
             "queries_data": [queries_data],
-            "email": email,
-            "project_id" : project_id
+            "key_token": key_token
         }
         print("payload")
         pprint(payload)
@@ -498,7 +518,7 @@ def compare_qa_sets(key_token: str, current_set_id: str, baseline_set_id: str = 
         # Now, include the question, baseline, and current answers into the scores_data
         enriched_scores_data = {}
         
-        for question_id, score_info in scores_data.get("scores_data").items():
+        for question_id, score_info in scores_data.get("scores", {}).items():
             # Retrieve the query details for the question ID
             query_info = queries_data.get(question_id, {})
 

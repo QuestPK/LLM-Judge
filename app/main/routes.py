@@ -25,7 +25,7 @@ main_bp = Blueprint("main", __name__)
 # Api instance for Swagger documentation
 api = Api(
     main_bp,
-    version="1.0",
+    version="1.1",
     title="Judge API's Testing",
     description="API's for testing",
     doc="/api-docs",
