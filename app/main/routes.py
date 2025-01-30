@@ -16,6 +16,9 @@ from .db_utils import (
     compare_qa_sets,
     get_usage_details,
     get_set_ids,
+    create_project,
+    delete_project,
+    update_project_name
 )
 from .utils import get_input_str_for_queries, get_output_str_for_queries
 from .queues import queue_manager
@@ -32,12 +35,12 @@ api = Api(
 )
 
 # input /get-score
-get_score_model = api.model(
-    "GetScore",
+calculate_score_model = api.model(
+    "CalculateScore",
     {
         "query_data": fields.Nested(
             api.model(
-                "GetScoreQueryData",
+                "CalculateScoreQueryData",
                 {
                     "question": fields.String(
                         required=True,
@@ -64,8 +67,8 @@ get_score_model = api.model(
 )
 
 # output model
-output_get_score_model = api.model(
-    "OutputGetScore",
+output_score_model = api.model(
+    "OutputCalculateScore",
     {
         "score": fields.Raw(
             description="Output get score data.",
@@ -86,9 +89,9 @@ error_response_model = api.model(
 )
 
 
-@api.route("/get-score")
-class GetScore(Resource):
-    @api.expect(get_score_model)
+@api.route("/calculate-score")
+class CalculateScore(Resource):
+    @api.expect(calculate_score_model)
     @api.doc(
         description="Calculate the score for a given question, baseline, and current text.",
         params={
@@ -100,7 +103,7 @@ class GetScore(Resource):
             }
         },
     )
-    @api.response(200, "Success", output_get_score_model)
+    @api.response(200, "Success", output_score_model)
     @api.response(
         400, "Quota exceeded / Invalid input / Not found", error_response_model
     )
@@ -109,7 +112,7 @@ class GetScore(Resource):
         """
         Calculate the score for a given question, baseline, and current text.
         - **query_data**: Object containing the question, baseline, and current text.
-        - **summary_accepted**: Whether the summary is accepted or not.
+        - **summary_accepted (Optional)**: Whether the summary is accepted or not.
         """
         key_token = request.headers.get("key-token")
         if not key_token:
@@ -181,16 +184,16 @@ class GetScore(Resource):
 
 
 # input /get-scores-for-queries
-get_score_for_queries_model = api.model(
-    "GetScoreForQueries",
+cal_score_for_queries_model = api.model(
+    "CalculateScoreForQueries",
     {
         "queries_data": fields.Nested(
             api.model(
-                "GSForQueriesQueryItem",
+                "CSForQueriesQueryItem",
                 {
                     "123": fields.Nested(
                         api.model(
-                            "GSFQIQueryDetails",
+                            "CSFQIQueryDetails",
                             {
                                 "question": fields.String(
                                     required=True, description="The question string"
@@ -211,7 +214,7 @@ get_score_for_queries_model = api.model(
                     ),
                     "456": fields.Nested(
                         api.model(
-                            "GSFQIQueryDetails",
+                            "CSFQIQueryDetails",
                             {
                                 "question": fields.String(
                                     required=True, description="The question string"
@@ -236,8 +239,8 @@ get_score_for_queries_model = api.model(
     },
 )
 # output /get-scores-for-queries
-response_get_scores_for_queries = api.model(
-    "OutputGetScoreForQueries",
+response_cal_scores_for_queries = api.model(
+    "OutputCalculateScoreForQueries",
     {
         "scores": fields.Raw(
             required=True,
@@ -257,9 +260,9 @@ response_get_scores_for_queries = api.model(
 )
 
 
-@api.route("/get-score-for-queries")
-class GetScoreForQueries(Resource):
-    @api.expect(get_score_for_queries_model)
+@api.route("/calculate-score-for-queries")
+class CalculateScoreForQueries(Resource):
+    @api.expect(cal_score_for_queries_model)
     @api.doc(
         description="Calculate scores for multiple queries.",
         params={
@@ -271,7 +274,7 @@ class GetScoreForQueries(Resource):
             }
         },
     )
-    @api.response(200, "Success", response_get_scores_for_queries)
+    @api.response(200, "Success", response_cal_scores_for_queries)
     @api.response(
         400, "Quota exceeded / Invalid input / Not found", error_response_model
     )
@@ -342,8 +345,8 @@ class GetScoreForQueries(Resource):
 
 
 # Input model for /get-key-token
-input_get_key_token_model = api.model(
-    "GetKeyToken",
+input_create_key_token_model = api.model(
+    "CreateKeyToken",
     {
         "email": fields.String(
             required=True, description="User email", example="test123@gmail.com"
@@ -352,7 +355,7 @@ input_get_key_token_model = api.model(
 )
 # response models
 output_get_key_token_model = api.model(
-    "OutputGetKeyToken",
+    "OutputCreateKeyToken",
     {
         "message": fields.String(
             description="Success message", example="Email found. key_token updated."
@@ -364,9 +367,9 @@ output_get_key_token_model = api.model(
 )
 
 
-@api.route("/get-key-token")
-class GetKeyToken(Resource):
-    @api.expect(input_get_key_token_model)
+@api.route("/create-key-token")
+class CreateKeyToken(Resource):
+    @api.expect(input_create_key_token_model)
     @api.doc(
         description="Retrieve and create a unique key token for a given email.",
     )
@@ -407,9 +410,12 @@ class GetKeyToken(Resource):
         }, 200
 
 
-input_set_qa_request_model = api.model(
-    "SetQnA",
+input_add_qa_request_model = api.model(
+    "AddQnA",
     {
+        "project_id" : fields.String(
+            required=True, description="The ID of the project", example=786
+        ), 
         "qa_data": fields.Raw(
             required=True,
             description="QA data to be added (generic structure)",
@@ -432,8 +438,8 @@ input_set_qa_request_model = api.model(
     },
 )
 
-set_qna_output_model = api.model(
-    "SetQnAOutput",
+add_qna_output_model = api.model(
+    "AddQnAOutput",
     {
         "response": fields.String(
             description="Success message", example="QA set added successfully."
@@ -443,9 +449,9 @@ set_qna_output_model = api.model(
 
 
 # Route for adding a new QA set
-@api.route("/set-qna")
-class SetQnA(Resource):
-    @api.expect(input_set_qa_request_model)
+@api.route("/add-qna")
+class AddQnA(Resource):
+    @api.expect(input_add_qa_request_model)
     @api.doc(
         description="Add a new QA set for a given email.",
         params={
@@ -457,7 +463,7 @@ class SetQnA(Resource):
             }
         },
     )
-    @api.response(200, "Success", set_qna_output_model)
+    @api.response(200, "Success", add_qna_output_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
     @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
@@ -470,17 +476,19 @@ class SetQnA(Resource):
             return {"error": "Missing key token."}, 400
 
         data = request.get_json()
-        if not data or "qa_data" not in data:
+        if not data or ("project_id" not in data and "qa_data" not in data):
             return {"error": "Invalid input, required parameter is missing"}, 400
 
         qa_data = data["qa_data"]
+        project_id = data["project_id"]
 
         try:
             # adding QA to db
-            add_qa(key_token=key_token, qa_data=qa_data)
+            add_qa(key_token=key_token, project_identifier=project_id, qa_data=qa_data)
             return {"response": f"QA set added against: {key_token} successfully."}, 200
         except Exception as e:
-            return {"error": f"Error in /set-qa: {str(e)}"}, 400
+            print(f"Error in /set-qa: {str(e)}")
+            return {"error": str(e) }, 400
 
 
 # model for baseline input data
@@ -488,6 +496,9 @@ input_set_baseline_model = api.model(
     "SetBaseline",
     {
         "set_id": fields.Integer(required=True, description="QA set ID", example=786),
+        "project_id" : fields.String(
+            required=True, description="The ID of the project", example=786
+        ),
     },
 )
 # model for success responses
@@ -521,9 +532,9 @@ class SetBaseline(Resource):
         400, "Invalid input / Not found", error_response_model
     )  # Invalid input or not found
     @api.response(500, "Internal Server Error", error_response_model)  # Server error
-    def post(self):
+    def put(self):
         """
-        Sets a baseline for the given email and set ID.
+        Update the baseline to the given set ID.
         - **set_id**: QA set ID
         """
         key_token = request.headers.get("key-token")
@@ -531,14 +542,15 @@ class SetBaseline(Resource):
             return {"error": "Missing key token."}, 400
 
         data = request.get_json()
-        if not data or "set_id" not in data:
+        if not data or ("set_id" not in data and "project_id" not in data):
             return {"error": "Invalid input, required parameter is missing"}, 400
 
         set_id = data["set_id"]
+        project_id = data["project_id"]
 
         try:
             # setting baseline (replace this with your actual logic)
-            update_baseline(key_token=key_token, set_id=set_id)
+            update_baseline(key_token=key_token,project_identifier=project_id, set_id=set_id)
             return {"response": f"Baseline updated against: {key_token}"}, 200
         except ValueError as e:
             # Assuming a custom exception like ValueError for this case
@@ -552,6 +564,9 @@ class SetBaseline(Resource):
 input_update_qa_model = api.model(
     "UpdateQnA",
     {
+        "project_id" : fields.String(
+            required=True, description="The ID of the project", example=786
+        ),
         "qa_data": fields.Raw(
             required=True,
             description="QA data to be updated (generic structure)",
@@ -600,7 +615,7 @@ class UpdateQnA(Resource):
     @api.response(200, "Success", success_qa_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
     @api.response(500, "Internal Server Error", error_response_model)
-    def post(self):
+    def put(self):
         """
         Update an existing QA set for a given email.
         - **qa_data**: QA data object with set_id
@@ -613,14 +628,19 @@ class UpdateQnA(Resource):
         data = request.get_json()
 
         # Input parameter validation
-        if not data or "qa_data" not in data:
+        if not data or "qa_data" not in data or "project_id" not in data:
             return {"error": "Invalid input, required parameter is missing"}, 400
 
         qa = data["qa_data"]
+        project_id = data["project_id"]
 
         try:
             # Attempt to update the QA set
-            update_qa(key_token=key_token, qa_data=qa)
+            update_qa(
+                key_token=key_token, 
+                project_identifier=project_id,
+                qa_data=qa
+            )
         except Exception as e:
             print("Error in /update-qa route:", e)
             return {"error": f"Error in /update-qa: {str(e)}"}, 400
@@ -632,6 +652,9 @@ class UpdateQnA(Resource):
 compare_qa_sets_model = api.model(
     "CompareQnASets",
     {
+        "project_id": fields.String(
+            required=True, description="The ID of the project", example=786
+        ),
         "current_set_id": fields.Integer(
             required=True, description="The ID of the current QA set", example=786
         ),
@@ -696,6 +719,7 @@ class CompareQnASets(Resource):
         Compare two QA sets for a user.
         - **current_set_id**: ID of the current QA set
         - **baseline_set_id**: (optional) ID of the baseline QA set
+        - **project_id**: ID of the project
         """
         key_token = request.headers.get("key-token")
         if not key_token:
@@ -705,9 +729,10 @@ class CompareQnASets(Resource):
         data = request.get_json()
 
         # Input parameter validation
-        if not data or "current_set_id" not in data:
+        if not data or ("current_set_id" not in data and "project_id" not in data):
             return {"error": "Invalid input, required parameter is missing"}, 400
 
+        project_id = data["project_id"]
         current_set_id = data["current_set_id"]
         baseline_set_id = data.get("baseline_set_id", None)
 
@@ -716,10 +741,11 @@ class CompareQnASets(Resource):
                 key_token=key_token,
                 current_set_id=current_set_id,
                 baseline_set_id=baseline_set_id,
+                project_identifier=project_id
             )
         except Exception as e:
             print("Error in /compare-qa-sets:", e)
-            return {"error": f"Error in /compare-qa-sets: {str(e)}"}, 400
+            return {"error": f"{str(e)}"}, 400
 
         return {
             "response": result,
@@ -807,7 +833,7 @@ input_get_answer_from_rag_question_format = api.model(
 
 # input payload mdoel
 input_get_answer_from_rag = api.model(
-    "GetAnswerFromRag",
+    "RetrieveAnswerFromRag",
     {
         "base_url": fields.String(
             required=True,
@@ -823,7 +849,7 @@ input_get_answer_from_rag = api.model(
 )
 # response model
 response_get_answer_from_rag_model = api.model(
-    "OutputGetAnswerFromRag",
+    "OutputRetrieveAnswerFromRag",
     {
         "answer": fields.Raw(
             description="Answers from rag",
@@ -833,11 +859,11 @@ response_get_answer_from_rag_model = api.model(
 )
 
 
-@api.route("/get-answer-from-rag")
-class GetAnswersFromRag(Resource):
+@api.route("/retrieve-answer-from-rag")
+class RetrieveAnswersFromRag(Resource):
     @api.expect(input_get_answer_from_rag, validate=True)  # Validates the input payload
     @api.doc(
-        description="Get answers from user's rag.",
+        description="Retrieve answers from user's rag.",
         params={
             "key-token": {
                 "description": "User identification token",
@@ -852,7 +878,7 @@ class GetAnswersFromRag(Resource):
     @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
         """
-        Get answers from user's rag.
+        Retrieve answers from user's rag.
         **base_url (str)**: Base URL of the user application/api
         **questions (dict)**: A dictionary of questions with IDs as keys
         """
@@ -882,7 +908,7 @@ class GetAnswersFromRag(Resource):
 
 
 output_get_set_ids_model = api.model(
-    "GetSetIds",
+    "OutputGetSetIds",
     {
         "response": fields.Raw(
             [
@@ -920,6 +946,12 @@ class GetSetIds(Resource):
                 "in": "header",
                 "type": "string",
                 "required": True,
+            },
+            "project_id" : {
+                "description": "Project ID",
+                "in": "query",
+                "type": "integer",
+                "required": True
             }
         },
     )
@@ -931,9 +963,13 @@ class GetSetIds(Resource):
         if not key_token:
             return {"error": "Missing key token."}, 400
 
+        project_id = request.args.get("project_id")
+        if not project_id:
+            return {"error": "Missing project id."}, 400
+        
         try:
             # Call your function to fetch usage details (the result would be dynamic based on the DB)
-            result = get_set_ids(key_token=key_token)
+            result = get_set_ids(key_token=key_token, project_identifier=project_id)
         except Exception as e:
             print("Error in /get-set-ids:", e)
             return {"error": f"Error in /get-set-ids: {str(e)}"}, 00
@@ -942,3 +978,168 @@ class GetSetIds(Resource):
             "response": result,
             "message": "Set IDs retreived",
         }, 200
+
+
+input_create_project_model = api.model(
+    "CreateProject",
+    {
+        "project_name": fields.String(
+            required=True, description="Project name", example="Project 1"
+        )
+    },
+)
+
+@api.route("/create-project")
+class CreateProject(Resource):
+    @api.response(200, "Success", output_get_set_ids_model)
+    @api.response(400, "Invalid input / Not found", error_response_model)
+    @api.response(500, "Internal Server Error", error_response_model)
+    @api.expect(input_create_project_model)
+    @api.doc(
+        description="Create project for user.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
+    )
+    def post(self):
+        """
+        Create project for user.
+        **project_name (str)**: Name of the project
+        """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
+        data = request.get_json()
+
+        if data is None or "project_name" not in data:
+            return {"error": "Invalid input, required parameter is missing"}, 400
+
+        project_name = data["project_name"]
+
+        try:
+            # create project against the user.
+            result = create_project(key_token=key_token, project_name=project_name)
+        except Exception as e:
+            print("Error in /create-project:", e)
+            return {"error": f"Error in /create-project: {str(e)}"}, 500
+
+        project_id = list(result.keys())[0]
+        return {
+            "response": {
+                "project_id" : result.get(project_id),
+                "project_name" : project_name
+            }
+        }, 200
+    
+@api.route("/delete-project")
+class DeleteProject(Resource):
+    @api.response(200, "Success", output_get_set_ids_model)
+    @api.response(400, "Invalid input / Not found", error_response_model)
+    @api.response(500, "Internal Server Error", error_response_model)
+    @api.doc(
+        description="Delete project for user.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            },
+            "project_id" : {
+                "description": "Project ID",
+                "in": "query",
+                "type": "integer",
+                "required": True
+            }
+        },
+    )
+    def delete(self):
+        """
+        Delete project for user.
+        """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
+        project_id = request.args.get("project_id")
+        if not project_id:
+            return {"error": "Missing project id."}, 400
+        
+        try:
+            # Call your function to fetch usage details (the result would be dynamic based on the DB)
+            delete_project(
+                key_token=key_token, 
+                project_id=project_id
+            )
+        except Exception as e:
+            print("Error in /delete-project:", e)
+            return {"error": f"{str(e)}"}, 500
+
+        return {
+            "message": "Project deleted"
+        }, 200
+
+@api.route("/update-project-name")
+class UpdateProjectName(Resource):
+    @api.response(200, "Success", output_get_set_ids_model)
+    @api.response(400, "Invalid input / Not found", error_response_model)
+    @api.response(500, "Internal Server Error", error_response_model)
+    @api.doc(
+        description="Update project name for user.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            },
+            "project_id" : {
+                "description": "Project ID",
+                "in": "query",
+                "type": "integer",
+                "required": True            
+            },
+            "project_name" : {
+                "description": "Project name",  
+                "in": "query",
+                "type": "string",
+                "required": True
+            }
+        },
+    )
+    def put(self):
+        """
+        Update project name for user.
+        """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
+        project_id = request.args.get("project_id")
+        if not project_id:
+            return {"error": "Missing project id."}, 400
+        
+        project_name = request.args.get("project_name")
+        if not project_name:
+            return {"error": "Missing project name."}, 400
+        
+        try:
+            # Call your function to fetch usage details (the result would be dynamic based on the DB)
+            update_project_name(
+                key_token=key_token, 
+                project_id=project_id,
+                project_name=project_name
+            )
+        except Exception as e:
+            print("Error in /update-project-name:", e)
+            return {"error": f"{str(e)}"}, 500
+
+        return {
+            "message": "Project name updated to " + project_name
+        }

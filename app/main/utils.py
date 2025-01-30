@@ -1,4 +1,5 @@
 from datetime import datetime
+import random
 
 from flask import request
 import requests
@@ -100,4 +101,18 @@ def post_score_for_queries(payload: dict) -> dict:
     except Exception as e:
         print(f"An error occurred while making the POST request: {e}")
         raise Exception(f"Failed to make the POST request: {e}")
+
+def generate_unique_project_id(existing_ids: set) -> str:
+    """
+    Generate a unique 4-digit project ID that does not exist in the given set of existing IDs.
     
+    Args:
+        existing_ids (set): A set of existing project IDs.
+
+    Returns:
+        str: A unique 4-digit project ID.
+    """
+    while True:
+        new_id = str(random.randint(1000, 9999))  # Generate a 4-digit number
+        if new_id not in existing_ids:
+            return new_id
