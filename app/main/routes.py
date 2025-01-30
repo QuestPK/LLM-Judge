@@ -15,12 +15,9 @@ from .db_utils import (
     update_qa,
     compare_qa_sets,
     get_usage_details,
-    get_set_ids
+    get_set_ids,
 )
-from .utils import (
-    get_input_str_for_queries,
-    get_output_str_for_queries
-)
+from .utils import get_input_str_for_queries, get_output_str_for_queries
 from .queues import queue_manager
 
 main_bp = Blueprint("main", __name__)
@@ -29,8 +26,8 @@ main_bp = Blueprint("main", __name__)
 api = Api(
     main_bp,
     version="1.1",
-    title="Judge API's Testing",
-    description="API's for testing",
+    title="Judge API's",
+    description="",
     doc="/api-docs",
 )
 
@@ -60,9 +57,6 @@ get_score_model = api.model(
                 },
             )
         ),
-        "key_token": fields.String(
-            required=True, description="User key token", example="12345abcdef67890"
-        ),
         "summary_accepted": fields.Boolean(
             required=False, description="Whether the summary is accepted", example=True
         ),
@@ -79,7 +73,7 @@ output_get_score_model = api.model(
                 "score": "Integer Score",
                 "reason": "Reason of score",
                 "message": "API message",
-            }
+            },
         ),
     },
 )
@@ -96,7 +90,15 @@ error_response_model = api.model(
 class GetScore(Resource):
     @api.expect(get_score_model)
     @api.doc(
-        description="Calculate the score for a given question, baseline, and current text."
+        description="Calculate the score for a given question, baseline, and current text.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
     )
     @api.response(200, "Success", output_get_score_model)
     @api.response(
@@ -107,19 +109,21 @@ class GetScore(Resource):
         """
         Calculate the score for a given question, baseline, and current text.
         - **query_data**: Object containing the question, baseline, and current text.
-        - **key_token**: User identifier.
         - **summary_accepted**: Whether the summary is accepted or not.
         """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
         data = request.get_json()
 
         if data is None:
             return {"error": "No valid JSON data found in the request."}, 400
 
-        if "query_data" not in data or "key_token" not in data:
+        if "query_data" not in data:
             return {"error": "Invalid, input parameters missing."}, 400
 
         query_data = data.get("query_data")
-        key_token = data.get("key_token", "")
 
         question = query_data.get("question", "")
         baseline = query_data.get("baseline", "")
@@ -180,58 +184,54 @@ class GetScore(Resource):
 get_score_for_queries_model = api.model(
     "GetScoreForQueries",
     {
-        "queries_data": 
-            fields.Nested(
-                api.model(
-                    "GSForQueriesQueryItem",
-                    {
-                        "123": fields.Nested(
-                            api.model(
-                                "GSFQIQueryDetails",
-                                {
-                                    "question": fields.String(
-                                        required=True, description="The question string"
-                                    ),
-                                    "baseline": fields.String(
-                                        required=True, description="The baseline string"
-                                    ),
-                                    "current": fields.String(
-                                        required=True, description="The current string"
-                                    ),
-                                },
-                            ),
-                            example={
-                                "question": "What is capital of france?",
-                                "baseline": "Paris",
-                                "current": "I don't know",
+        "queries_data": fields.Nested(
+            api.model(
+                "GSForQueriesQueryItem",
+                {
+                    "123": fields.Nested(
+                        api.model(
+                            "GSFQIQueryDetails",
+                            {
+                                "question": fields.String(
+                                    required=True, description="The question string"
+                                ),
+                                "baseline": fields.String(
+                                    required=True, description="The baseline string"
+                                ),
+                                "current": fields.String(
+                                    required=True, description="The current string"
+                                ),
                             },
                         ),
-                        "456": fields.Nested(
-                            api.model(
-                                "GSFQIQueryDetails",
-                                {
-                                    "question": fields.String(
-                                        required=True, description="The question string"
-                                    ),
-                                    "baseline": fields.String(
-                                        required=True, description="The baseline string"
-                                    ),
-                                    "current": fields.String(
-                                        required=True, description="The current string"
-                                    ),
-                                },
-                            ),
-                            example={
-                                "question": "What is capital of Pakistan?",
-                                "baseline": "Islamabad",
-                                "current": "Islamabad",
+                        example={
+                            "question": "What is capital of france?",
+                            "baseline": "Paris",
+                            "current": "I don't know",
+                        },
+                    ),
+                    "456": fields.Nested(
+                        api.model(
+                            "GSFQIQueryDetails",
+                            {
+                                "question": fields.String(
+                                    required=True, description="The question string"
+                                ),
+                                "baseline": fields.String(
+                                    required=True, description="The baseline string"
+                                ),
+                                "current": fields.String(
+                                    required=True, description="The current string"
+                                ),
                             },
                         ),
-                    },
-                )
-        ),
-        "key_token": fields.String(
-            required=True, description="User key token", example="12345abcdef67890"
+                        example={
+                            "question": "What is capital of Pakistan?",
+                            "baseline": "Islamabad",
+                            "current": "Islamabad",
+                        },
+                    ),
+                },
+            )
         ),
     },
 )
@@ -243,11 +243,11 @@ response_get_scores_for_queries = api.model(
             required=True,
             description="A dictionary containing score objects indexed by IDs",
             example={
-                "12": {
+                "123": {
                     "score": 1,
                     "reason": "The response is completely not relevant and does not provide the correct information.",
                 },
-                "34": {
+                "456": {
                     "score": 1,
                     "reason": "The response is completely irrelevant and does not provide any correct information.",
                 },
@@ -260,7 +260,17 @@ response_get_scores_for_queries = api.model(
 @api.route("/get-score-for-queries")
 class GetScoreForQueries(Resource):
     @api.expect(get_score_for_queries_model)
-    @api.doc(description="Calculate scores for multiple queries.")
+    @api.doc(
+        description="Calculate scores for multiple queries.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
+    )
     @api.response(200, "Success", response_get_scores_for_queries)
     @api.response(
         400, "Quota exceeded / Invalid input / Not found", error_response_model
@@ -269,19 +279,21 @@ class GetScoreForQueries(Resource):
     def post(self):
         """
         Calculate scores for multiple queries.
-        - **key_token**: User identifier.
         - **query_data**: Object containing the question, baseline, and current text.
-        - **summary_accepted** (Optional bool) : If want to discard summaries set to false, default true. 
+        - **summary_accepted** (Optional bool) : If want to discard summaries set to false, default true.
         """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
         data = request.get_json()
 
         if data is None:
             return {"error": "No queries data found in the request."}, 400
 
-        if "queries_data" not in data and "key_token" not in data:
+        if "queries_data" not in data:
             return {"error": "Invalid, input parameters missing."}, 400
 
-        key_token = data.get("key_token", "")
         queries_data = data.get("queries_data")
         summary_accepted = data.get("summary_accepted", True)
 
@@ -303,7 +315,9 @@ class GetScoreForQueries(Resource):
             return {"error": "Queue Full"}, 400
 
         try:
-            queue_manager.create_and_insert_queries(queries_data, summary_accepted=summary_accepted)
+            queue_manager.create_and_insert_queries(
+                queries_data, summary_accepted=summary_accepted
+            )
 
             start_time = time.time()
             scores_data = get_scores_for_queries(
@@ -353,7 +367,9 @@ output_get_key_token_model = api.model(
 @api.route("/get-key-token")
 class GetKeyToken(Resource):
     @api.expect(input_get_key_token_model)
-    @api.doc(description="Retrieve and create a unique key token for a given email.")
+    @api.doc(
+        description="Retrieve and create a unique key token for a given email.",
+    )
     @api.response(200, "Success", output_get_key_token_model)
     @api.response(
         400, "Quota exceeded / Invalid input / Not found", error_response_model
@@ -361,10 +377,10 @@ class GetKeyToken(Resource):
     @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
         """
-        Retrieve and create a unique key token for a given email. It will create a new data document if the email and project ID are not found.
+        Retrieve and create a unique key token for a given email. It will create a new data document if the email is not found.
         - **email**: User's email address.
         """
-        data = request.json
+        data = request.get_json()
 
         if not data or "email" not in data:
             return {"error": "Invalid input, 'email' key is required"}, 400
@@ -394,11 +410,6 @@ class GetKeyToken(Resource):
 input_set_qa_request_model = api.model(
     "SetQnA",
     {
-        "key_token": fields.String(
-            required=True,
-            description="User Identifier",
-            example="12345abcdef67890",
-        ),
         "qa_data": fields.Raw(
             required=True,
             description="QA data to be added (generic structure)",
@@ -435,22 +446,33 @@ set_qna_output_model = api.model(
 @api.route("/set-qna")
 class SetQnA(Resource):
     @api.expect(input_set_qa_request_model)
-    @api.doc(description="Add a new QA set for a given email.")
+    @api.doc(
+        description="Add a new QA set for a given email.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
+    )
     @api.response(200, "Success", set_qna_output_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
     @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
         """
         Adds a new QA set for the given email.
-
-        - **key_token**: User identifier.
         - **qa_data**: QA data object with set_id
         """
-        data = request.json
-        if not data or "key_token" not in data or "qa_data" not in data:
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
+        data = request.get_json()
+        if not data or "qa_data" not in data:
             return {"error": "Invalid input, required parameter is missing"}, 400
 
-        key_token = data["key_token"]
         qa_data = data["qa_data"]
 
         try:
@@ -465,11 +487,6 @@ class SetQnA(Resource):
 input_set_baseline_model = api.model(
     "SetBaseline",
     {
-        "key_token": fields.String(
-            required=True,
-            description="user identifier",
-            example="12345abcdef67890",
-        ),
         "set_id": fields.Integer(required=True, description="QA set ID", example=786),
     },
 )
@@ -489,7 +506,15 @@ success_response_model = api.model(
 class SetBaseline(Resource):
     @api.expect(input_set_baseline_model)
     @api.doc(
-        description="Set provided set as a baseline for a given email and project id."
+        description="Set provided set as a baseline for a given email and project id.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
     )
     @api.response(200, "Success", success_response_model)  # Success response
     @api.response(
@@ -499,15 +524,16 @@ class SetBaseline(Resource):
     def post(self):
         """
         Sets a baseline for the given email and set ID.
-
-        - **key_token**: "user identifier"
         - **set_id**: QA set ID
         """
-        data = request.json
-        if not data or "key_token" not in data or "set_id" not in data:
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
+        data = request.get_json()
+        if not data or "set_id" not in data:
             return {"error": "Invalid input, required parameter is missing"}, 400
 
-        key_token = data["key_token"]
         set_id = data["set_id"]
 
         try:
@@ -526,11 +552,6 @@ class SetBaseline(Resource):
 input_update_qa_model = api.model(
     "UpdateQnA",
     {
-        "key_token": fields.String(
-            required=True,
-            description="user identifier",
-            example="12345abcdef67890",
-        ),
         "qa_data": fields.Raw(
             required=True,
             description="QA data to be updated (generic structure)",
@@ -565,25 +586,36 @@ success_qa_model = api.model(
 @api.route("/update-qna")
 class UpdateQnA(Resource):
     @api.expect(input_update_qa_model)
-    @api.doc(description="Update an existing QA set for a given user.")
+    @api.doc(
+        description="Update an existing QA set for a given user.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
+    )
     @api.response(200, "Success", success_qa_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
     @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
         """
         Update an existing QA set for a given email.
-
-        - **key_token**: User Identifier
         - **qa_data**: QA data object with set_id
         """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
         # Get JSON data from the request
-        data = request.json
+        data = request.get_json()
 
         # Input parameter validation
-        if not data or "key_token" not in data or "qa_data" not in data:
+        if not data or "qa_data" not in data:
             return {"error": "Invalid input, required parameter is missing"}, 400
 
-        key_token = data["key_token"]
         qa = data["qa_data"]
 
         try:
@@ -600,11 +632,6 @@ class UpdateQnA(Resource):
 compare_qa_sets_model = api.model(
     "CompareQnASets",
     {
-        "key_token": fields.String(
-            required=True,
-            description="user identifier",
-            example="12345abcdef67890",
-        ),
         "current_set_id": fields.Integer(
             required=True, description="The ID of the current QA set", example=786
         ),
@@ -650,25 +677,37 @@ response_compare_qa_sets_model = api.model(
 @api.route("/compare-qna-sets")
 class CompareQnASets(Resource):
     @api.expect(compare_qa_sets_model)
-    @api.doc(description="Compare two QA sets for a user.")
+    @api.doc(
+        description="Compare two QA sets for a user.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
+    )
     @api.response(200, "Success", response_compare_qa_sets_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
     @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
         """
         Compare two QA sets for a user.
-        - **key_token** : User identifier.
         - **current_set_id**: ID of the current QA set
         - **baseline_set_id**: (optional) ID of the baseline QA set
         """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
         # Get JSON data from the request
-        data = request.json
+        data = request.get_json()
 
         # Input parameter validation
-        if not data or "key_token" not in data or "current_set_id" not in data:
+        if not data or "current_set_id" not in data:
             return {"error": "Invalid input, required parameter is missing"}, 400
 
-        key_token = data["key_token"]
         current_set_id = data["current_set_id"]
         baseline_set_id = data.get("baseline_set_id", None)
 
@@ -706,7 +745,7 @@ output_get_usage_model = api.model(
                 "total_input_token": 285,
                 "total_output_token": 425,
                 "total_processing_time": 76.18,
-                "total_queue_time": 76.16
+                "total_queue_time": 76.16,
             },
         ),
         "message": fields.String(
@@ -722,7 +761,14 @@ output_get_usage_model = api.model(
 class GetUsageDetails(Resource):
     @api.doc(
         description="Get usage details for a given email and project ID.",
-        params={"key_token": "user identifier (required)"},
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
     )
     @api.response(200, "Success", output_get_usage_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
@@ -730,14 +776,10 @@ class GetUsageDetails(Resource):
     def get(self):
         """
         Get usage details for a given user.
-        - **key_token**: User identifier.
         """
-        # Get query parameters
-        key_token = request.args.get("key_token")
-
-        # Input parameter validation
+        key_token = request.headers.get("key-token")
         if not key_token:
-            return {"error": "Invalid input, key parameters are required"}, 400
+            return {"error": "Missing key token."}, 400
 
         try:
             # Call your function to fetch usage details (the result would be dynamic based on the DB)
@@ -781,35 +823,45 @@ input_get_answer_from_rag = api.model(
 )
 # response model
 response_get_answer_from_rag_model = api.model(
-    "OutputGetAnswerFromRag", 
+    "OutputGetAnswerFromRag",
     {
         "answer": fields.Raw(
             description="Answers from rag",
-            example={
-            "1" : "It's answer",
-            "2" : "It's answer"
-        })
-    }
+            example={"1": "It's answer", "2": "It's answer"},
+        )
+    },
 )
 
 
 @api.route("/get-answer-from-rag")
 class GetAnswersFromRag(Resource):
     @api.expect(input_get_answer_from_rag, validate=True)  # Validates the input payload
-    @api.doc(description="Get answers from user's rag.")
+    @api.doc(
+        description="Get answers from user's rag.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
+    )
     @api.response(200, "Success", response_get_answer_from_rag_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
     @api.response(500, "Internal Server Error", error_response_model)
     def post(self):
         """
         Get answers from user's rag.
-
-        **Input params**:
-            **base_url (str)**: Base URL of the user application/api
-            **questions (dict)**: A dictionary of questions with IDs as keys
+        **base_url (str)**: Base URL of the user application/api
+        **questions (dict)**: A dictionary of questions with IDs as keys
         """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
         # Get JSON data from the request
-        data = request.json
+        data = request.get_json()
 
         # Validate input parameters
         if "base_url" not in data or "questions" not in data:
@@ -832,27 +884,29 @@ class GetAnswersFromRag(Resource):
 output_get_set_ids_model = api.model(
     "GetSetIds",
     {
-        "response" : fields.Raw(
+        "response": fields.Raw(
             [
                 {
-                    "set_id" : 23,
-                    "qa_set" : [
+                    "set_id": 23,
+                    "qa_set": [
                         {
-                            "id" : 1,
-                            "question" : "question",
-                            "answer" : "answer",
+                            "id": 1,
+                            "question": "question",
+                            "answer": "answer",
                         },
                         {
-                            "id" : 2,
-                            "question" : "question",
-                            "answer" : "answer",
+                            "id": 2,
+                            "question": "question",
+                            "answer": "answer",
                         },
-                    ]
+                    ],
                 }
             ]
         )
-    }
+    },
 )
+
+
 @api.route("/get-set-ids")
 class GetSetIds(Resource):
     @api.response(200, "Success", output_get_set_ids_model)
@@ -860,20 +914,23 @@ class GetSetIds(Resource):
     @api.response(500, "Internal Server Error", error_response_model)
     @api.doc(
         description="Get set ids for user.",
-        params={"key_token": "user identifier (required)"},
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
     )
     def get(self):
         """
         Get set ids for user.
-        - **key_token**: User identifier.
         """
-        # Get query parameters
-        key_token = request.args.get("key_token")
-
-        # Input parameter validation
+        key_token = request.headers.get("key-token")
         if not key_token:
-            return {"error": "Invalid input, key parameters are required"}, 400
-    
+            return {"error": "Missing key token."}, 400
+
         try:
             # Call your function to fetch usage details (the result would be dynamic based on the DB)
             result = get_set_ids(key_token=key_token)
