@@ -138,6 +138,7 @@ def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
         "messages": messages,
         "stream": False,
         "keep_alive": "6h",
+        # "OLLAMA_NUM_PARALLEL" : 4
     }
 
     try:
