@@ -68,7 +68,7 @@ def get_output_str_for_queries(scores_data: dict[dict]) -> str:
 
     return output_str
 
-def post_score_for_queries(payload: dict) -> dict:
+def post_score_for_queries(payload: dict, headers: dict = {}) -> dict:
     """
     Makes a POST request to the server with the provided payload and returns the response.
 
@@ -86,10 +86,10 @@ def post_score_for_queries(payload: dict) -> dict:
     try:
         # Dynamically get the base URL
         base_url = request.host_url.rstrip('/')  # Removes the trailing slash from the host_url
-        url = f"{base_url}/get-score-for-queries"
+        url = f"{base_url}/calculate-score-for-queries"
         print("Making POST request to:", url)
 
-        response = requests.post(url, json=payload)
+        response = requests.post(url, json=payload, headers=headers)
         
         if response.status_code == 200:
             print("Request was successful.")

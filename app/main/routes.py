@@ -29,7 +29,7 @@ main_bp = Blueprint("main", __name__)
 api = Api(
     main_bp,
     version="1.1",
-    title="Judge API's",
+    title="API Documentation",
     description="",
     doc="/api-docs",
 )
@@ -282,7 +282,7 @@ class CalculateScoreForQueries(Resource):
     def post(self):
         """
         Calculate scores for multiple queries.
-        - **query_data**: Object containing the question, baseline, and current text.
+        - **queries_data**: Object containing the question, baseline, and current text.
         - **summary_accepted** (Optional bool) : If want to discard summaries set to false, default true.
         """
         key_token = request.headers.get("key-token")
@@ -341,7 +341,8 @@ class CalculateScoreForQueries(Resource):
             )
             return {"scores": scores_data.get("scores")}
         except Exception as e:
-            return {"error": "Error in /get-score-for-queries route"}, 500
+            print("Error in /calculate-score-for-queries route", e)
+            return {"error": str(e)}, 500
 
 
 # Input model for /get-key-token
@@ -485,7 +486,8 @@ class AddQnA(Resource):
         try:
             # adding QA to db
             add_qa(key_token=key_token, project_identifier=project_id, qa_data=qa_data)
-            return {"response": f"QA set added against: {key_token} successfully."}, 200
+            print(f"QA set added against: {key_token} successfully.")
+            return {"response": f"QA set added successfully."}, 200
         except Exception as e:
             print(f"Error in /set-qa: {str(e)}")
             return {"error": str(e) }, 400
@@ -557,7 +559,8 @@ class SetBaseline(Resource):
             return {"error": f"Error: {str(e)}"}, 400
         except Exception as e:
             # Handling any general exceptions
-            return {"error": f"Error in /set-baseline: {str(e)}"}, 500
+            print("Error in /set-baseline:", str(e))
+            return {"error": f"{str(e)}"}, 500
 
 
 # Model for updating QA
@@ -643,7 +646,7 @@ class UpdateQnA(Resource):
             )
         except Exception as e:
             print("Error in /update-qa route:", e)
-            return {"error": f"Error in /update-qa: {str(e)}"}, 400
+            return {"error": f"{str(e)}"}, 400
 
         return {"response": f"QA set updated against: {key_token} successfully."}, 200
 
@@ -812,7 +815,7 @@ class GetUsageDetails(Resource):
             result = get_usage_details(key_token=key_token)
         except Exception as e:
             print("Error in /get-usage-details:", e)
-            return {"error": f"Error in /get-usage-details: {str(e)}"}, 500
+            return {"error": f"{str(e)}"}, 500
 
         return {
             "response": result,
@@ -972,7 +975,7 @@ class GetSetIds(Resource):
             result = get_set_ids(key_token=key_token, project_identifier=project_id)
         except Exception as e:
             print("Error in /get-set-ids:", e)
-            return {"error": f"Error in /get-set-ids: {str(e)}"}, 00
+            return {"error": f"{str(e)}"}, 00
 
         return {
             "response": result,
@@ -1027,12 +1030,12 @@ class CreateProject(Resource):
             result = create_project(key_token=key_token, project_name=project_name)
         except Exception as e:
             print("Error in /create-project:", e)
-            return {"error": f"Error in /create-project: {str(e)}"}, 500
+            return {"error": f"{str(e)}"}, 400
 
         project_id = list(result.keys())[0]
         return {
             "response": {
-                "project_id" : result.get(project_id),
+                "project_id" : project_id,
                 "project_name" : project_name
             }
         }, 200

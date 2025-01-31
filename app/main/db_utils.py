@@ -474,12 +474,20 @@ def compare_qa_sets(key_token: str, project_identifier: str, current_set_id: str
         # Prepare the payload for the POST request
         payload = {
             "queries_data": queries_data,
-            "key_token": key_token
         }
-        print("Payload:")
-        pprint(payload)
 
-        scores_data = post_score_for_queries(payload)
+        headers = {
+            "Content-Type": "application/json",
+            "key-token" : key_token
+        }
+
+        # print("Payload:")
+        # pprint(payload)
+
+        # print("Headers")
+        # print(headers)
+
+        scores_data = post_score_for_queries(payload, headers=headers)
 
         # Enrich the scores data with question, baseline, and current answers
         enriched_scores_data = {}
@@ -494,7 +502,7 @@ def compare_qa_sets(key_token: str, project_identifier: str, current_set_id: str
                 "current": query_info.get("current", "")
             }
 
-        print("\nEnriched Scores Data:")
+        print("Updated Scores Data:")
         pprint(enriched_scores_data)
 
         return enriched_scores_data
