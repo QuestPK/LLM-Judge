@@ -158,3 +158,13 @@ baseline: Object-Oriented Programming (OOP) is a programming paradigm based on t
 current: Object-Oriented Programming is a way of organizing code using objects. It includes key concepts like encapsulation and inheritance to make code reusable.
 """
 # score - 3
+
+# =============================================================================
+# PET AI CARE RAGBOT
+{
+    "1": "What are the symptoms and treatment options for an abscess in dogs?",
+    "2": "How does acupuncture benefit dogs, and what conditions can it help treat?",
+    "3": "What are the signs of Addison’s disease in dogs, and how is it managed?",
+    "4": "How can pet owners safely administer oral medication to their dogs?", 
+    "5": "What are the different types of aggression in dogs and their causes?"
+}

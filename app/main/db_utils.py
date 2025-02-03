@@ -631,6 +631,41 @@ def get_project_ids(key_token: str) -> list[dict]:
 
     return project_ids
 
+def get_specific_project_details(key_token: str, project_identifier: str) -> dict:
+    """ 
+    Retrieve the details of a specific project for a given user.
+
+    Args:
+        key_token (str): User identifier.
+        project_identifier (str): Either the project ID or project name.
+
+    Returns:
+        Dict: A dictionary containing the project details.
+    """
+    # Find user data by key_token
+    user_data = mongo.db.qa_data.find_one({"key_token": key_token})
+
+    if not user_data:  
+        raise ValueError(f"No user found for: {key_token}")
+
+    projects = user_data.get("projects", {})
+
+    if not projects:
+        raise ValueError(f"No projects found for user: {key_token}")
+
+    # Identify the correct project
+    project_key = None
+    for proj_id, project in projects.items():
+        if proj_id == project_identifier or project.get("project_name") == project_identifier:
+            project_key = proj_id
+            break
+
+    if not project_key:
+        raise ValueError(f"Project '{project_identifier}' not found.")
+
+    project = projects[project_key]
+
+    return project
 def create_project(key_token: str, project_name: str) -> dict:
     """
     Create a new project for a user with a unique 4-digit project ID.

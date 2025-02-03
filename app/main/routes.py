@@ -17,6 +17,7 @@ from .db_utils import (
     get_usage_details,
     get_set_ids,
     get_project_ids,
+    get_specific_project_details,
     create_project,
     delete_project,
     update_project_name
@@ -988,7 +989,6 @@ output_get_project_ids_model = api.model(
     "OutputGetProjectIds",
     {
         "project_data": fields.Raw(
-            [
                 {
                     "project_id": 1,
                     "project_name": "Project 1",
@@ -1010,7 +1010,6 @@ output_get_project_ids_model = api.model(
                         }
                     ],
                 }
-            ]
         )
     }
 )
@@ -1043,6 +1042,84 @@ class GetProjectIds(Resource):
         try:
             # function to fetch all the projects data
             result = get_project_ids(key_token=key_token)
+        except Exception as e:
+            print("Error in /get-set-ids:", e)
+            return {"error": f"{str(e)}"}, 00
+
+        return {
+            "project_data": result,
+            "message": "Projects data retreived",
+        }, 200
+    
+
+output_get_specific_project_model = api.model(
+    "OutputGetSpecificProject",
+    {
+        "project_data": fields.Raw(
+            [
+                {
+                    "project_id": 1,
+                    "project_name": "Project 1",
+                    "qa_sets": [
+                        {
+                            "set_id": 23,
+                            "qa_set": [
+                                {
+                                    "id": 1,
+                                    "question": "question",
+                                    "answer": "answer",
+                                },
+                                {
+                                    "id": 2,
+                                    "question": "question",
+                                    "answer": "answer",
+                                },
+                            ],
+                        }
+                    ],
+                }
+            ]
+        )
+    }
+)
+
+
+@api.route("/get-specific-project-details")
+class GetSpecificProject(Resource):
+    @api.response(200, "Success", output_get_specific_project_model)
+    @api.response(400, "Invalid input / Not found", error_response_model)
+    @api.response(500, "Internal Server Error", error_response_model)
+    @api.doc(
+        description="Get specific project and there respective data for the user.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            },
+            "project_id" : {
+                "description": "Project ID",
+                "in": "query",
+                "type": "integer",
+                "required": True
+            }
+        },
+    )
+    def get(self):
+        """
+        Get specific project and there respective data for the user.
+        """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+        
+        project_id = request.args.get("project_id")
+        if not project_id:
+            return {"error": "Missing project id."}, 400
+        try:
+            # function to fetch all the projects data
+            result = get_specific_project_details(key_token=key_token, project_identifier=project_id)
         except Exception as e:
             print("Error in /get-set-ids:", e)
             return {"error": f"{str(e)}"}, 00
