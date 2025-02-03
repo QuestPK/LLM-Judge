@@ -24,7 +24,12 @@
     ```sh
     python run.py
     ```
-2. Api usage -> call /get-new-token to get a token in order to get started.
-
+2. Api usage 
+    ```
+    -> call /get-new-token to get a token.
+    -> create a project using /create-project in order to get started.
+    -> add 2 qna sets using /add-qna.
+    -> start comparing to get scores using /compare-qna.
+    ```
 3. Visit /api-docs for complete details and usage of api's.
 

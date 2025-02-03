@@ -15,7 +15,7 @@ def create_app():
     @app.route('/')
     def home():
         return """
-        <h2>Hi, home page! Version: v1.0.0</h2>
+        <h2>Hi, home page! Version: v1.1.0</h2>
         <br>
         <a href="/api-docs" target="_blank">View API Documentation</a>
         """

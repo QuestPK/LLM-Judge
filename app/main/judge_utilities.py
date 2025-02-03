@@ -138,6 +138,7 @@ def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
         "messages": messages,
         "stream": False,
         "keep_alive": "6h",
+        # "OLLAMA_NUM_PARALLEL" : 4
     }
 
     try:
@@ -154,6 +155,7 @@ def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
         result = json.loads(response.get("message", {}).get("content", ""))
     except json.JSONDecodeError as e:
         print("Issue decoding JSON response:", e)
+        print(response.get("message", {}).get("content", ""))
         raise Exception("Failed to decode JSON response" + str(e))
  
     total_rating = result.get("Total rating", 0)
@@ -188,6 +190,7 @@ def get_score_data(question: str, baseline: str, current: str, summary_accepted:
     score_data = get_score_from_llm(question, baseline, current)
 
     if not summary_accepted:
+        print("Question: ", question)
         is_summary = check_if_summary(baseline, current)
 
         if is_summary:
@@ -252,11 +255,6 @@ def process_items(items_list: list[dict]) -> dict:
     """
     scores_retrieved = {}
 
-    # test seq processing
-    # results = []
-    # for item in items_list:
-    #     results.append(process_single_item(item))
-
     with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
         results = list(executor.map(process_single_item, items_list))
 
@@ -265,7 +263,7 @@ def process_items(items_list: list[dict]) -> dict:
 
     return scores_retrieved
 
-def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager) -> Dict[str, dict]:
+def get_scores_for_queries(queries_data: dict, queue_manager: QueueManager) -> Dict[str, dict]:
     """
     Retrieve scores for a list of queries using the provided queue manager.
 
@@ -305,6 +303,7 @@ def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager
             break
         
         start_time = time.time()
+
         # process the retreived items
         scores = process_items(items)
 
@@ -316,7 +315,7 @@ def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager
         # add the scores
         scores_data.update({"scores": scores})
 
-        query_ids = [list(item.keys()) for item in queries_list][0]
+        query_ids = list(queries_data.keys())
         
         # if all queries scores have been retrieved
         print("\nQuery ids ",query_ids)
@@ -326,10 +325,58 @@ def get_scores_for_queries(queries_list: List[dict], queue_manager: QueueManager
             print("Breaking...")
             break
         
-        # import time
-        # time.sleep(2)
     print("Avg queue time: ", time_list)
     scores_data["avg_queue_time"] = round(sum(time_list) / len(time_list), 2)
+
     return scores_data
 
+def get_score_from_rag(base_url: str, questions: dict) -> dict:
+    """
+    Calls the RAG model's endpoint to retrieve answers for given questions.
+
+    Args:
+        base_url (str): The base URL of the RAG model's endpoint.
+        questions (dict): A dictionary where keys are question IDs and values are the questions.
+
+    Returns:
+        dict: A dictionary where keys are question IDs and values are the answers from the RAG model.
     
+    Raises:
+        ValueError: If questions data is not provided.
+        Exception: If there's an error in posting the request.
+    """
+    if not questions:
+        raise ValueError("Pass value questions data")
+    
+    # Construct the endpoint URL
+    base_url = base_url + '/get_rag_response'
+
+    # Prepare the list of questions for the request payload
+    questions_list = []
+    for ques_id, question in questions.items():
+        questions_list.append(
+            {
+                "id": ques_id,
+                "question": question
+            }
+        )
+
+    try:
+        # Prepare the payload and make the POST request
+        payload = {
+            "questions": questions_list
+        }
+        response = requests.post(base_url, json=payload).json()
+    except Exception as e:
+        # Handle exceptions in the request process
+        raise Exception(f"Error posting request to: {base_url}")
+    
+    # Extract answers from the response
+    answer_list = response.get("answer", [])
+
+    # Map question IDs to their respective answers
+    answers = {}
+    for ans in answer_list:
+        answers[f"{ans.get('id', 'NF')}"] = f"{ans.get('answer')}"
+
+    return answers
