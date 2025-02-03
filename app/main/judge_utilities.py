@@ -176,6 +176,7 @@ def get_score_from_llm_temp(question: str, baseline: str, current: str):
         "score": 0,
         "reason": "Dummmy reason"
     }
+
 def get_score_data(question: str, baseline: str, current: str, summary_accepted: bool) -> dict:
     """ 
     Args:
