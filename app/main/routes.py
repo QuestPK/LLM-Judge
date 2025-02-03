@@ -16,6 +16,7 @@ from .db_utils import (
     compare_qa_sets,
     get_usage_details,
     get_set_ids,
+    get_project_ids,
     create_project,
     delete_project,
     update_project_name
@@ -980,6 +981,75 @@ class GetSetIds(Resource):
         return {
             "response": result,
             "message": "Set IDs retreived",
+        }, 200
+    
+
+output_get_project_ids_model = api.model(
+    "OutputGetProjectIds",
+    {
+        "project_data": fields.Raw(
+            [
+                {
+                    "project_id": 1,
+                    "project_name": "Project 1",
+                    "qa_sets": [
+                        {
+                            "set_id": 23,
+                            "qa_set": [
+                                {
+                                    "id": 1,
+                                    "question": "question",
+                                    "answer": "answer",
+                                },
+                                {
+                                    "id": 2,
+                                    "question": "question",
+                                    "answer": "answer",
+                                },
+                            ],
+                        }
+                    ],
+                }
+            ]
+        )
+    }
+)
+
+
+@api.route("/get-project-ids")
+class GetProjectIds(Resource):
+    @api.response(200, "Success", output_get_project_ids_model)
+    @api.response(400, "Invalid input / Not found", error_response_model)
+    @api.response(500, "Internal Server Error", error_response_model)
+    @api.doc(
+        description="Get project ids and there respective data for the user.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
+    )
+    def get(self):
+        """
+        Get project ids and there respective data for the user.
+        """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+        
+        try:
+            # function to fetch all the projects data
+            result = get_project_ids(key_token=key_token)
+        except Exception as e:
+            print("Error in /get-set-ids:", e)
+            return {"error": f"{str(e)}"}, 00
+
+        return {
+            "project_data": result,
+            "message": "Projects data retreived",
         }, 200
 
 
