@@ -481,11 +481,11 @@ def compare_qa_sets(key_token: str, project_identifier: str, current_set_id: str
             "key-token" : key_token
         }
 
-        # print("Payload:")
-        # pprint(payload)
+        print("Payload:")
+        pprint(payload)
 
-        # print("Headers")
-        # print(headers)
+        print("Headers")
+        print(headers)
 
         scores_data = post_score_for_queries(payload, headers=headers)
 
