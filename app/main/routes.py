@@ -20,7 +20,7 @@ from .db_utils import (
     get_specific_project_details,
     create_project,
     delete_project,
-    update_project_name
+    update_project_name,
 )
 from .utils import get_input_str_for_queries, get_output_str_for_queries
 from .queues import queue_manager
@@ -416,9 +416,9 @@ class CreateKeyToken(Resource):
 input_add_qa_request_model = api.model(
     "AddQnA",
     {
-        "project_id" : fields.String(
+        "project_id": fields.String(
             required=True, description="The ID of the project", example=786
-        ), 
+        ),
         "qa_data": fields.Raw(
             required=True,
             description="QA data to be added (generic structure)",
@@ -492,7 +492,7 @@ class AddQnA(Resource):
             return {"response": f"QA set added successfully."}, 200
         except Exception as e:
             print(f"Error in /set-qa: {str(e)}")
-            return {"error": str(e) }, 400
+            return {"error": str(e)}, 400
 
 
 # model for baseline input data
@@ -500,7 +500,7 @@ input_set_baseline_model = api.model(
     "SetBaseline",
     {
         "set_id": fields.Integer(required=True, description="QA set ID", example=786),
-        "project_id" : fields.String(
+        "project_id": fields.String(
             required=True, description="The ID of the project", example=786
         ),
     },
@@ -554,7 +554,9 @@ class SetBaseline(Resource):
 
         try:
             # setting baseline (replace this with your actual logic)
-            update_baseline(key_token=key_token,project_identifier=project_id, set_id=set_id)
+            update_baseline(
+                key_token=key_token, project_identifier=project_id, set_id=set_id
+            )
             return {"response": f"Baseline updated against: {key_token}"}, 200
         except ValueError as e:
             # Assuming a custom exception like ValueError for this case
@@ -569,7 +571,7 @@ class SetBaseline(Resource):
 input_update_qa_model = api.model(
     "UpdateQnA",
     {
-        "project_id" : fields.String(
+        "project_id": fields.String(
             required=True, description="The ID of the project", example=786
         ),
         "qa_data": fields.Raw(
@@ -641,11 +643,7 @@ class UpdateQnA(Resource):
 
         try:
             # Attempt to update the QA set
-            update_qa(
-                key_token=key_token, 
-                project_identifier=project_id,
-                qa_data=qa
-            )
+            update_qa(key_token=key_token, project_identifier=project_id, qa_data=qa)
         except Exception as e:
             print("Error in /update-qa route:", e)
             return {"error": f"{str(e)}"}, 400
@@ -746,7 +744,7 @@ class CompareQnASets(Resource):
                 key_token=key_token,
                 current_set_id=current_set_id,
                 baseline_set_id=baseline_set_id,
-                project_identifier=project_id
+                project_identifier=project_id,
             )
         except Exception as e:
             print("Error in /compare-qa-sets:", e)
@@ -952,12 +950,12 @@ class GetSetIds(Resource):
                 "type": "string",
                 "required": True,
             },
-            "project_id" : {
+            "project_id": {
                 "description": "Project ID",
                 "in": "query",
                 "type": "integer",
-                "required": True
-            }
+                "required": True,
+            },
         },
     )
     def get(self):
@@ -971,7 +969,7 @@ class GetSetIds(Resource):
         project_id = request.args.get("project_id")
         if not project_id:
             return {"error": "Missing project id."}, 400
-        
+
         try:
             # Call your function to fetch usage details (the result would be dynamic based on the DB)
             result = get_set_ids(key_token=key_token, project_identifier=project_id)
@@ -983,35 +981,35 @@ class GetSetIds(Resource):
             "response": result,
             "message": "Set IDs retreived",
         }, 200
-    
+
 
 output_get_project_ids_model = api.model(
     "OutputGetProjectIds",
     {
         "project_data": fields.Raw(
-                {
-                    "project_id": 1,
-                    "project_name": "Project 1",
-                    "qa_sets": [
-                        {
-                            "set_id": 23,
-                            "qa_set": [
-                                {
-                                    "id": 1,
-                                    "question": "question",
-                                    "answer": "answer",
-                                },
-                                {
-                                    "id": 2,
-                                    "question": "question",
-                                    "answer": "answer",
-                                },
-                            ],
-                        }
-                    ],
-                }
+            {
+                "project_id": 1,
+                "project_name": "Project 1",
+                "qa_sets": [
+                    {
+                        "set_id": 23,
+                        "qa_set": [
+                            {
+                                "id": 1,
+                                "question": "question",
+                                "answer": "answer",
+                            },
+                            {
+                                "id": 2,
+                                "question": "question",
+                                "answer": "answer",
+                            },
+                        ],
+                    }
+                ],
+            }
         )
-    }
+    },
 )
 
 
@@ -1038,7 +1036,7 @@ class GetProjectIds(Resource):
         key_token = request.headers.get("key-token")
         if not key_token:
             return {"error": "Missing key token."}, 400
-        
+
         try:
             # function to fetch all the projects data
             result = get_project_ids(key_token=key_token)
@@ -1050,7 +1048,7 @@ class GetProjectIds(Resource):
             "project_data": result,
             "message": "Projects data retreived",
         }, 200
-    
+
 
 output_get_specific_project_model = api.model(
     "OutputGetSpecificProject",
@@ -1080,7 +1078,7 @@ output_get_specific_project_model = api.model(
                 }
             ]
         )
-    }
+    },
 )
 
 
@@ -1098,12 +1096,12 @@ class GetSpecificProject(Resource):
                 "type": "string",
                 "required": True,
             },
-            "project_id" : {
+            "project_id": {
                 "description": "Project ID",
                 "in": "query",
                 "type": "integer",
-                "required": True
-            }
+                "required": True,
+            },
         },
     )
     def get(self):
@@ -1113,13 +1111,15 @@ class GetSpecificProject(Resource):
         key_token = request.headers.get("key-token")
         if not key_token:
             return {"error": "Missing key token."}, 400
-        
+
         project_id = request.args.get("project_id")
         if not project_id:
             return {"error": "Missing project id."}, 400
         try:
             # function to fetch all the projects data
-            result = get_specific_project_details(key_token=key_token, project_identifier=project_id)
+            result = get_specific_project_details(
+                key_token=key_token, project_identifier=project_id
+            )
         except Exception as e:
             print("Error in /get-set-ids:", e)
             return {"error": f"{str(e)}"}, 00
@@ -1138,6 +1138,7 @@ input_create_project_model = api.model(
         )
     },
 )
+
 
 @api.route("/create-project")
 class CreateProject(Resource):
@@ -1181,12 +1182,10 @@ class CreateProject(Resource):
 
         project_id = list(result.keys())[0]
         return {
-            "response": {
-                "project_id" : project_id,
-                "project_name" : project_name
-            }
+            "response": {"project_id": project_id, "project_name": project_name}
         }, 200
-    
+
+
 @api.route("/delete-project")
 class DeleteProject(Resource):
     @api.response(200, "Success", output_get_set_ids_model)
@@ -1201,12 +1200,12 @@ class DeleteProject(Resource):
                 "type": "string",
                 "required": True,
             },
-            "project_id" : {
+            "project_id": {
                 "description": "Project ID",
                 "in": "query",
                 "type": "integer",
-                "required": True
-            }
+                "required": True,
+            },
         },
     )
     def delete(self):
@@ -1220,20 +1219,16 @@ class DeleteProject(Resource):
         project_id = request.args.get("project_id")
         if not project_id:
             return {"error": "Missing project id."}, 400
-        
+
         try:
             # Call your function to fetch usage details (the result would be dynamic based on the DB)
-            delete_project(
-                key_token=key_token, 
-                project_id=project_id
-            )
+            delete_project(key_token=key_token, project_id=project_id)
         except Exception as e:
             print("Error in /delete-project:", e)
             return {"error": f"{str(e)}"}, 500
 
-        return {
-            "message": "Project deleted"
-        }, 200
+        return {"message": "Project deleted"}, 200
+
 
 @api.route("/update-project-name")
 class UpdateProjectName(Resource):
@@ -1249,18 +1244,18 @@ class UpdateProjectName(Resource):
                 "type": "string",
                 "required": True,
             },
-            "project_id" : {
+            "project_id": {
                 "description": "Project ID",
                 "in": "query",
                 "type": "integer",
-                "required": True            
+                "required": True,
             },
-            "project_name" : {
-                "description": "Project name",  
+            "project_name": {
+                "description": "Project name",
                 "in": "query",
                 "type": "string",
-                "required": True
-            }
+                "required": True,
+            },
         },
     )
     def put(self):
@@ -1274,22 +1269,18 @@ class UpdateProjectName(Resource):
         project_id = request.args.get("project_id")
         if not project_id:
             return {"error": "Missing project id."}, 400
-        
+
         project_name = request.args.get("project_name")
         if not project_name:
             return {"error": "Missing project name."}, 400
-        
+
         try:
             # Call your function to fetch usage details (the result would be dynamic based on the DB)
             update_project_name(
-                key_token=key_token, 
-                project_id=project_id,
-                project_name=project_name
+                key_token=key_token, project_id=project_id, project_name=project_name
             )
         except Exception as e:
             print("Error in /update-project-name:", e)
             return {"error": f"{str(e)}"}, 500
 
-        return {
-            "message": "Project name updated to " + project_name
-        }
+        return {"message": "Project name updated to " + project_name}
