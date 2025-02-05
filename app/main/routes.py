@@ -13,6 +13,7 @@ from .db_utils import (
     add_qa,
     update_baseline,
     update_qa,
+    delete_qa_set,
     compare_qa_sets,
     get_usage_details,
     get_set_ids,
@@ -651,6 +652,69 @@ class UpdateQnA(Resource):
         return {"response": f"QA set updated against: {key_token} successfully."}, 200
 
 
+output_delete_qa_set_model = api.model(
+    "output_delete_qa_set_model",
+    {
+        "message": fields.Raw(example="Deleted QA set.")
+    }
+)
+@api.route("/delete-qa-set")
+class DeleteQaSet(Resource):
+    @api.response(200, "Success", output_delete_qa_set_model)
+    @api.response(400, "Invalid input / Not found", error_response_model)
+    @api.response(500, "Internal Server Error", error_response_model)
+    @api.doc(
+        description="Delete QA set for user.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            },
+            "set_id": {
+                "description": "QA set ID",
+                "in": "query",
+                "type": "integer",
+                "required": True,
+            },
+            "project_id": {
+                "description": "Project ID",
+                "in": "query",
+                "type": "integer",
+                "required": True,
+            },
+        },
+    )
+    def delete(self):
+        """
+        Delete QA set for user.
+        """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
+        set_id = request.args.get("set_id")
+        if not set_id:
+            return {"error": "Missing set id."}, 400
+        
+        project_id = request.args.get("project_id")
+        if not project_id:
+            return {"error": "Missing project id."}, 400
+
+        try:
+            set_id = int(set_id)
+        except ValueError:
+            return {"error": "Invalid set id."}, 400
+
+        try:
+            delete_qa_set(key_token=key_token, set_id=set_id, project_identifier=project_id)
+        except Exception as e:
+            print("Error in /delete-qa-set:", e)
+            return {"error": f"{str(e)}"}, 400
+
+        return {"message": "QA set deleted"}, 200
+
 # Input Model for /compare-qa-sets
 compare_qa_sets_model = api.model(
     "CompareQnASets",
@@ -1138,11 +1202,16 @@ input_create_project_model = api.model(
         )
     },
 )
-
+output_create_project_model = api.model(
+    "OutputCreateProject",
+    {
+        "message": fields.Raw(example="Created Project.",description="Project created successfully")
+    }
+)
 
 @api.route("/create-project")
 class CreateProject(Resource):
-    @api.response(200, "Success", output_get_set_ids_model)
+    @api.response(200, "Success", output_create_project_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
     @api.response(500, "Internal Server Error", error_response_model)
     @api.expect(input_create_project_model)
@@ -1185,10 +1254,15 @@ class CreateProject(Resource):
             "response": {"project_id": project_id, "project_name": project_name}
         }, 200
 
-
+output_delete_project_model = api.model(
+    "OutputDeleteProject",
+    {
+        "message": fields.Raw(example="Deleted Project.",description="Project deleted successfully")
+    }
+)
 @api.route("/delete-project")
 class DeleteProject(Resource):
-    @api.response(200, "Success", output_get_set_ids_model)
+    @api.response(200, "Success", output_delete_project_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
     @api.response(500, "Internal Server Error", error_response_model)
     @api.doc(
@@ -1229,10 +1303,16 @@ class DeleteProject(Resource):
 
         return {"message": "Project deleted"}, 200
 
+output_update_project_name_model = api.model(
+    "OutputUpdateProjectName",
+    {
+        "message": fields.Raw(example="Updated Project Name to this.",description="Project name updated successfully")
+    }
+)
 
 @api.route("/update-project-name")
 class UpdateProjectName(Resource):
-    @api.response(200, "Success", output_get_set_ids_model)
+    @api.response(200, "Success", output_update_project_name_model)
     @api.response(400, "Invalid input / Not found", error_response_model)
     @api.response(500, "Internal Server Error", error_response_model)
     @api.doc(

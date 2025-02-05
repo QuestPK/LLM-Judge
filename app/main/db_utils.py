@@ -666,6 +666,7 @@ def get_specific_project_details(key_token: str, project_identifier: str) -> dic
     project = projects[project_key]
 
     return project
+
 def create_project(key_token: str, project_name: str) -> dict:
     """
     Create a new project for a user with a unique 4-digit project ID.
@@ -785,3 +786,46 @@ def update_project_name(key_token: str, project_id: str, project_name: str) -> N
         {"key_token": key_token},
         {"$set": {"projects": user_data["projects"]}}
     )
+
+def delete_qa_set(key_token: str, project_identifier: str, set_id: int) -> None:
+    """
+    Delete a QA set for a user unless it's a baseline.
+
+    Args:
+        key_token (str): User identifier.
+        project_identifier (str): Either the project ID or project name.
+        set_id (int): ID of the QA set to delete.
+
+    Raises:
+        ValueError: If the user, project, or QA set is not found, or if the set is a baseline.
+    """
+    # Fetch user data
+    user_data = mongo.db.qa_data.find_one({"key_token": key_token})
+    if not user_data:
+        print("No user data found for key_token:", key_token)
+        raise ValueError(f"User not found!")
+
+    # Fetch project data
+    project_to_update = user_data.get("projects", {}).get(project_identifier)
+    if not project_to_update:
+        raise ValueError(f"Project '{project_identifier}' not found for user.")
+
+    # Find the QA set
+    for qa_set in project_to_update["qa_sets"]:
+        if qa_set["set_id"] == set_id:
+            if qa_set.get("baseline", False):
+                raise ValueError(f"Baseline QA set cannot be deleted.")
+            
+            # Remove the QA set
+            project_to_update["qa_sets"] = [
+                s for s in project_to_update["qa_sets"] if s["set_id"] != set_id
+            ]
+
+            # Update the database only if deletion occurs
+            mongo.db.qa_data.update_one(
+                {"key_token": key_token},
+                {"$set": {"projects": user_data["projects"]}}
+            )
+            return
+
+    raise ValueError(f"QA set with ID {set_id} not found in project '{project_identifier}'.")
