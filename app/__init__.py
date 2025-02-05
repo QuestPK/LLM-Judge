@@ -1,16 +1,11 @@
 from flask import Flask
-from flask_pymongo import PyMongo
-from app.config import Config
 
-mongo = PyMongo()
+from app.config import Config
+from app.extensions import mongo, api
+from app.main.routes import main_bp  
 
 def create_app():
     app = Flask(__name__)
-
-    # Load config
-    app.config.from_object(Config)
-
-    mongo.init_app(app)
 
     @app.route('/')
     def home():
@@ -20,9 +15,17 @@ def create_app():
         <a href="/api-docs" target="_blank">View API Documentation</a>
         """
     
-    with app.app_context():
-        # Import and register blueprints
-        from app.main import routes
-        app.register_blueprint(routes.main_bp)
+    app.config.from_object(Config)
 
-        return app
+    # Initialize MongoDB
+    mongo.init_app(app)
+
+    # Register the main blueprint under the /register-doc prefix
+    app.register_blueprint(main_bp)
+    
+    # Initialize the Flask-RESTx API
+    api.init_app(app)
+    
+    return app
+
+
