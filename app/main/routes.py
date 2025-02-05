@@ -31,10 +31,12 @@ main_bp = Blueprint("main", __name__)
 # Api instance for Swagger documentation
 api = Api(
     main_bp,
-    version="1.1",
+    version="1.2",
     title="API Documentation",
     description="",
     doc="/api-docs",
+    default="Judge",
+    default_label="Judge Namespace"
 )
 
 # input /get-score
@@ -651,69 +653,6 @@ class UpdateQnA(Resource):
 
         return {"response": f"QA set updated against: {key_token} successfully."}, 200
 
-
-output_delete_qa_set_model = api.model(
-    "output_delete_qa_set_model",
-    {
-        "message": fields.Raw(example="Deleted QA set.")
-    }
-)
-@api.route("/delete-qa-set")
-class DeleteQaSet(Resource):
-    @api.response(200, "Success", output_delete_qa_set_model)
-    @api.response(400, "Invalid input / Not found", error_response_model)
-    @api.response(500, "Internal Server Error", error_response_model)
-    @api.doc(
-        description="Delete QA set for user.",
-        params={
-            "key-token": {
-                "description": "User identification token",
-                "in": "header",
-                "type": "string",
-                "required": True,
-            },
-            "set_id": {
-                "description": "QA set ID",
-                "in": "query",
-                "type": "integer",
-                "required": True,
-            },
-            "project_id": {
-                "description": "Project ID",
-                "in": "query",
-                "type": "integer",
-                "required": True,
-            },
-        },
-    )
-    def delete(self):
-        """
-        Delete QA set for user.
-        """
-        key_token = request.headers.get("key-token")
-        if not key_token:
-            return {"error": "Missing key token."}, 400
-
-        set_id = request.args.get("set_id")
-        if not set_id:
-            return {"error": "Missing set id."}, 400
-        
-        project_id = request.args.get("project_id")
-        if not project_id:
-            return {"error": "Missing project id."}, 400
-
-        try:
-            set_id = int(set_id)
-        except ValueError:
-            return {"error": "Invalid set id."}, 400
-
-        try:
-            delete_qa_set(key_token=key_token, set_id=set_id, project_identifier=project_id)
-        except Exception as e:
-            print("Error in /delete-qa-set:", e)
-            return {"error": f"{str(e)}"}, 400
-
-        return {"message": "QA set deleted"}, 200
 
 # Input Model for /compare-qa-sets
 compare_qa_sets_model = api.model(
@@ -1364,3 +1303,67 @@ class UpdateProjectName(Resource):
             return {"error": f"{str(e)}"}, 500
 
         return {"message": "Project name updated to " + project_name}
+
+
+output_delete_qa_set_model = api.model(
+    "output_delete_qa_set_model",
+    {
+        "message": fields.Raw(example="Deleted QA set.")
+    }
+)
+@api.route("/delete-qa-set")
+class DeleteQaSet(Resource):
+    @api.response(200, "Success", output_delete_qa_set_model)
+    @api.response(400, "Invalid input / Not found", error_response_model)
+    @api.response(500, "Internal Server Error", error_response_model)
+    @api.doc(
+        description="Delete QA set for user.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            },
+            "set_id": {
+                "description": "QA set ID",
+                "in": "query",
+                "type": "integer",
+                "required": True,
+            },
+            "project_id": {
+                "description": "Project ID",
+                "in": "query",
+                "type": "integer",
+                "required": True,
+            },
+        },
+    )
+    def delete(self):
+        """
+        Delete QA set for user.
+        """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
+        set_id = request.args.get("set_id")
+        if not set_id:
+            return {"error": "Missing set id."}, 400
+        
+        project_id = request.args.get("project_id")
+        if not project_id:
+            return {"error": "Missing project id."}, 400
+
+        try:
+            set_id = int(set_id)
+        except ValueError:
+            return {"error": "Invalid set id."}, 400
+
+        try:
+            delete_qa_set(key_token=key_token, set_id=set_id, project_identifier=project_id)
+        except Exception as e:
+            print("Error in /delete-qa-set:", e)
+            return {"error": f"{str(e)}"}, 400
+
+        return {"message": "QA set deleted"}, 200
