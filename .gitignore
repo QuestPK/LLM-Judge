@@ -1,6 +1,7 @@
 # Project Specific 
 app.py
 app/main/routes_prev.py
+app/main/swagger.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -3,7 +3,7 @@ import time
 from flask import request
 from flask_restx import Namespace, Resource
 
-from app.main.swagger_models import (
+from app.main.swagger_models.judge import (
     error_response_model,
     calculate_score_model, output_score_model,
     cal_score_for_queries_model, response_cal_scores_for_queries,

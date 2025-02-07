@@ -1,7 +1,7 @@
 from flask import request
 from flask_restx import Namespace, Resource
   
-from app.main.swagger_models import (
+from app.main.swagger_models.db import (
     error_response_model,
     input_create_key_token_model, output_create_key_token_model,
     input_add_qa_request_model, add_qna_output_model, 
