@@ -1,5 +1,6 @@
 # Project Specific 
 app.py
+app/main/routes_prev.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

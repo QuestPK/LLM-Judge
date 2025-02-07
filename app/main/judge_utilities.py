@@ -166,7 +166,7 @@ def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
         result = extract_json(content)
     else:
         try:
-            result = json.loads()
+            result = json.loads(content)
         except json.JSONDecodeError as e:
             print("Issue decoding JSON response:", e)
             print(content)

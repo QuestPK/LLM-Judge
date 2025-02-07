@@ -37,7 +37,7 @@ python run.py
 ###  API Documentation
 For complete API documentation and usage details, visit:
 ```http
-GET /api-docs
+GET /
 ```
 
 ### 1. Obtain a Token
