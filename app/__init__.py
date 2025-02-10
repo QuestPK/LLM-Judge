@@ -1,5 +1,6 @@
 from flask import Flask
 from flask import Blueprint
+from flask_cors import CORS
 
 from app.config import Config
 from app.extensions import mongo, api
@@ -32,4 +33,6 @@ def create_app() -> Flask:
 
     # Register the Blueprint with the application
     app.register_blueprint(main_bp)
+
+    CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
     return app
