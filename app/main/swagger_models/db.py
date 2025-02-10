@@ -336,3 +336,39 @@ output_delete_qa_set_model = api.model(
         "message": fields.Raw(example="Deleted QA set.")
     }
 )
+
+# /save-qna-scores
+input_save_qa_scores_model = api.model(
+    "InputSaveScore",
+    {
+        "set_id" : fields.Integer(
+            required=True, example=123
+        ),
+        "project_id" : fields.String(
+            required=True, example="6775"
+        ),
+        "qa_scores_data": fields.Raw({
+            "123" : {
+                "score" : 0,
+                "reason" : "Reason",
+                "question" : "question",
+                "baseline" : "baseline answer",
+                "current" : "current answer"
+            },
+            "456" : {
+                "score" : 0,
+                "reason" : "Reason",
+                "question" : "question",
+                "baseline" : "baseline answer",
+                "current" : "current answer"
+            }
+        })
+    }
+)
+
+response_save_qa_scores_model = api.model(
+    "OutputSaveQaScore",
+    {
+        "message": fields.Raw(example="Scores saved successfully.")
+    }
+)

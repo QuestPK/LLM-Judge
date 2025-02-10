@@ -15,7 +15,8 @@ from app.main.swagger_models.db import (
     output_delete_project_model, 
     output_update_project_name_model,
     output_delete_qa_set_model,
-    compare_qa_sets_model, response_compare_qa_sets_model
+    compare_qa_sets_model, response_compare_qa_sets_model,
+    input_save_qa_scores_model, response_save_qa_scores_model
 )
 from app.main.db_utils import (
     add_qa, update_qa, delete_qa_set,
@@ -26,7 +27,8 @@ from app.main.db_utils import (
     get_specific_project_details,
     create_project, delete_project,
     update_project_name,
-    compare_qa_sets
+    compare_qa_sets,
+    save_qa_scores
 )
 
 db_ns = Namespace(
@@ -635,3 +637,57 @@ class CompareQnASets(Resource):
             "response": result,
             "message": "Scores calculated for the current set.",
         }, 200  
+    
+@db_ns.route("/save-qna-scores")
+class SaveQnAScores(Resource):
+    @db_ns.expect(input_save_qa_scores_model)
+    @db_ns.doc(
+        description="Save QA scores for a user.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            }
+        },
+    )
+    @db_ns.response(200, "Success", response_save_qa_scores_model)
+    @db_ns.response(400, "Invalid input / Not found", error_response_model)
+    @db_ns.response(500, "Internal Server Error", error_response_model)
+    def post(self):
+        """
+        Save QA scores for a user.
+        - **set_id**: ID of the QA set
+        - **project_id**: ID of the project
+        - **qa_scores_data**: QnA scores
+        """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+
+        # Get JSON data from the request
+        data = request.get_json()
+
+        # Input parameter validation
+        if not data or ("set_id" not in data and "project_id" not in data or "qa_scores_data" not in data):
+            return {"error": "Invalid input, required parameter is missing"}, 400
+
+        project_id = data["project_id"]
+        set_id = data["set_id"]
+        qa_scores_data = data["qa_scores_data"]
+
+        try:
+            save_qa_scores(
+                key_token=key_token,
+                set_id=set_id,
+                project_identifier=project_id,
+                qa_scores=qa_scores_data
+            )
+        except Exception as e:
+            print("Error in /save-qa-scores:", e)
+            return {"error": f"{str(e)}"}, 400
+
+        return {
+            "message": "Scores saved sucessfully.", 
+        }, 200

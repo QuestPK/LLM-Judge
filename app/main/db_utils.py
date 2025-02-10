@@ -829,3 +829,35 @@ def delete_qa_set(key_token: str, project_identifier: str, set_id: int) -> None:
             return
 
     raise ValueError(f"QA set with ID {set_id} not found in project '{project_identifier}'.")
+
+def save_qa_scores(key_token: str, set_id: str, project_identifier: str, qa_scores: dict):
+    # Fetch user data
+    user_data = mongo.db.qa_data.find_one({"key_token": key_token})
+    if not user_data:
+        raise ValueError(f"No user data found for key_token: {key_token}")
+
+    # Check if the project exists for the user
+    project_data = user_data.get("projects", {}).get(project_identifier)
+    if not project_data:
+        raise ValueError(f"Project '{project_identifier}' not found for user.")
+
+    # # qna set
+    qa_sets_list = project_data.get("qa_sets", [])
+    qa_set_keys = [
+        qa_set.get("set_id", "")
+        for qa_set in qa_sets_list
+    ]
+    # print(qa_set_keys, type(qa_set_keys[0]))
+    if set_id not in qa_set_keys:
+        raise ValueError(f"Set does not exist in this project")
+    
+    # if not list(qa_scores.keys()) == list(qa_set_data.keys()):
+    #     raise ValueError("Set don't match")
+    
+    # Save updated QA sets to the database
+    mongo.db.qa_data.update_one(
+        {"key_token": key_token},
+        {"$set": {f"projects.{project_identifier}.scores_data.{set_id}": qa_scores}}
+    )
+
+
