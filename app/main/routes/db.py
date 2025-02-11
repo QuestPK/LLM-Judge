@@ -375,7 +375,7 @@ class GetSetIds(Resource):
             "project_id": {
                 "description": "Project ID",
                 "in": "query",
-                "type": "integer",
+                "type": "string",
                 "required": True,
             },
         },
@@ -457,7 +457,7 @@ class GetSpecificProject(Resource):
             "project_id": {
                 "description": "Project ID",
                 "in": "query",
-                "type": "integer",
+                "type": "strings",
                 "required": True,
             },
         },
@@ -714,7 +714,7 @@ class GetSetScores(Resource):
             "project_id": {
                 "description": "Project ID",
                 "in": "query",
-                "type": "integer",
+                "type": "string",
                 "required": True,
             },
         },
@@ -722,7 +722,7 @@ class GetSetScores(Resource):
     @db_ns.response(200, "Success", response_get_set_score)
     @db_ns.response(400, "Invalid input / Not found", error_response_model)
     @db_ns.response(500, "Internal Server Error", error_response_model)
-    def get(self,):
+    def get(self):
         """
         Get scores data for a set.
         """
