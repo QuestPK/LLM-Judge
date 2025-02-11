@@ -841,23 +841,22 @@ def save_qa_scores(key_token: str, set_id: str, project_identifier: str, qa_scor
     if not project_data:
         raise ValueError(f"Project '{project_identifier}' not found for user.")
 
-    # # qna set
+    # Get the QA sets list
     qa_sets_list = project_data.get("qa_sets", [])
-    qa_set_keys = [
-        qa_set.get("set_id", "")
-        for qa_set in qa_sets_list
-    ]
-    # print(qa_set_keys, type(qa_set_keys[0]))
-    if set_id not in qa_set_keys:
-        raise ValueError(f"Set does not exist in this project")
     
-    # if not list(qa_scores.keys()) == list(qa_set_data.keys()):
-    #     raise ValueError("Set don't match")
+    # Locate the specific QA set by its set_id
+    for qa_set in qa_sets_list:
+        if qa_set.get("set_id") == set_id:
+            # Update the QA set with the scores
+            qa_set["scores"] = qa_scores
+            break
+    else:
+        raise ValueError(f"Set does does not exist in this project.")
     
-    # Save updated QA sets to the database
+    # Save updated QA sets back to the database
     mongo.db.qa_data.update_one(
         {"key_token": key_token},
-        {"$set": {f"projects.{project_identifier}.scores_data.{set_id}": qa_scores}}
+        {"$set": {f"projects.{project_identifier}.qa_sets": qa_sets_list}}
     )
 
 
