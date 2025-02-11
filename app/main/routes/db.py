@@ -16,7 +16,8 @@ from app.main.swagger_models.db import (
     output_update_project_name_model,
     output_delete_qa_set_model,
     compare_qa_sets_model, response_compare_qa_sets_model,
-    input_save_qa_scores_model, response_save_qa_scores_model
+    input_save_qa_scores_model, response_save_qa_scores_model,
+    response_get_set_score
 )
 from app.main.db_utils import (
     add_qa, update_qa, delete_qa_set,
@@ -28,7 +29,8 @@ from app.main.db_utils import (
     create_project, delete_project,
     update_project_name,
     compare_qa_sets,
-    save_qa_scores
+    save_qa_scores,
+    get_set_scores
 )
 
 db_ns = Namespace(
@@ -690,4 +692,71 @@ class SaveQnAScores(Resource):
 
         return {
             "message": "Scores saved sucessfully.", 
+        }, 200
+
+@db_ns.route("/get-set-scores")
+class GetSetScores(Resource):
+    @db_ns.doc(
+        description="Get scores data for a set.",
+        params={
+            "key-token": {
+                "description": "User identification token",
+                "in": "header",
+                "type": "string",
+                "required": True,
+            },
+            "set_id": {
+                "description": "QA set ID",
+                "in": "query",
+                "type": "integer",
+                "required": True,
+            },
+            "project_id": {
+                "description": "Project ID",
+                "in": "query",
+                "type": "integer",
+                "required": True,
+            },
+        },
+    )
+    @db_ns.response(200, "Success", response_get_set_score)
+    @db_ns.response(400, "Invalid input / Not found", error_response_model)
+    @db_ns.response(500, "Internal Server Error", error_response_model)
+    def get(self,):
+        """
+        Get scores data for a set.
+        """
+        key_token = request.headers.get("key-token")
+        if not key_token:
+            return {"error": "Missing key token."}, 400
+        
+        set_id = request.args.get("set_id")
+        if not set_id:
+            return {"error": "Missing set id."}, 400
+        
+        project_id = request.args.get("project_id")
+        if not project_id:
+            return {"error": "Missing project id."}, 400
+        
+        try:
+            set_id = int(set_id)
+        except (ValueError, TypeError) as e:
+            return {
+                "error" : "Set id must be integer"
+            }
+        
+        try:
+            scores_data = get_set_scores(
+                key_token=key_token,
+                project_id=project_id,
+                set_id=set_id,
+            )
+
+        except Exception as e:
+            print("Error in /get-set-scores:", e)
+            return {"error": f"{str(e)}"}, 400
+
+        return {
+            "scores_data" : scores_data,
+            "message": "Scores retrieved sucessfully.", 
         }, 200

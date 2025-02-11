@@ -830,7 +830,7 @@ def delete_qa_set(key_token: str, project_identifier: str, set_id: int) -> None:
 
     raise ValueError(f"QA set with ID {set_id} not found in project '{project_identifier}'.")
 
-def save_qa_scores(key_token: str, set_id: str, project_identifier: str, qa_scores: dict):
+def save_qa_scores(key_token: str, set_id: int, project_identifier: str, qa_scores: dict):
     # Fetch user data
     user_data = mongo.db.qa_data.find_one({"key_token": key_token})
     if not user_data:
@@ -859,4 +859,23 @@ def save_qa_scores(key_token: str, set_id: str, project_identifier: str, qa_scor
         {"$set": {f"projects.{project_identifier}.qa_sets": qa_sets_list}}
     )
 
+def get_set_scores(key_token:str, set_id:int, project_id:str) -> dict:
+    # Fetch user data
+    user_data = mongo.db.qa_data.find_one({"key_token": key_token})
+    if not user_data:
+        raise ValueError(f"No user data found for key_token: {key_token}")
 
+    # Check if the project exists for the user
+    project_data = user_data.get("projects", {}).get(project_id)
+    if not project_data:
+        raise ValueError(f"Project '{project_id}' not found for user.")
+
+    qa_sets_data = project_data.get("qa_sets", [])
+    for qa_set in qa_sets_data:
+        print(set_id, type(set_id))
+        pprint(qa_set)
+        if qa_set.get("set_id", 0) == set_id:
+            print(qa_set.get("set_id", 0) == set_id)
+            return qa_set.get("scores")
+    
+    raise ValueError("No previous scores data found.")

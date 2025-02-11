@@ -372,3 +372,27 @@ response_save_qa_scores_model = api.model(
         "message": fields.Raw(example="Scores saved successfully.")
     }
 )
+
+# /get-set-score
+response_get_set_score = api.model(
+    "OutputGetSetScore",
+    {
+    "scores_data": fields.Raw({
+        "123": {
+        "score": 0,
+        "reason": "Reason",
+        "question": "question",
+        "baseline": "baseline answer",
+        "current": "current answer"
+        },
+        "456": {
+        "score": 0,
+        "reason": "Reason",
+        "question": "question",
+        "baseline": "baseline answer",
+        "current": "current answer"
+        },
+    "message": "Scores retrieved sucessfully."
+    }),
+}
+)
