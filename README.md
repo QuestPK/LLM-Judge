@@ -57,6 +57,7 @@ POST /create-project
   "project_name": "Example Project"
 }
 ```
+
 #### Response:
 ```json
 {
@@ -64,6 +65,7 @@ POST /create-project
   "message": "Project created successfully"
 }
 ```
+
 
 ### 3. Add Question-Answer (QnA) Sets
 To add QnA sets to a project, use:
@@ -120,6 +122,14 @@ To compare QnA sets and get similarity scores:
 POST /compare-qna
 ```
 
+### Sample
+```json
+{
+  "project_id": "786",
+  "baseline_set_id" : 78,
+  "current_set_id": 79,
+}
+```
 
 ## Troubleshooting
 - Ensure that all dependencies are installed.
