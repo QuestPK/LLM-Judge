@@ -1,3 +1,4 @@
+import re
 import json
 import requests
 from pprint import pprint
@@ -102,6 +103,15 @@ def check_if_summary(baseline: str, current: str):
 
     return is_summary
 
+def extract_json(text):
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group())  # Convert JSON string to dictionary
+        except json.JSONDecodeError as e:
+           raise Exception(f"Invalid JSON in response: {e}") from e
+    raise Exception("No JSON found in response")
+
 def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
     """
     Get the score from the LLM.
@@ -150,13 +160,17 @@ def get_score_from_llm(question: str, baseline: str, current: str) -> dict:
 
     # print("\nResults:")
     # pprint(response)
-    
-    try:
-        result = json.loads(response.get("message", {}).get("content", ""))
-    except json.JSONDecodeError as e:
-        print("Issue decoding JSON response:", e)
-        print(response.get("message", {}).get("content", ""))
-        raise Exception("Failed to decode JSON response" + str(e))
+    content = response.get("message", {}).get("content", "")
+
+    if "deepseek" in MODEL_NAME:
+        result = extract_json(content)
+    else:
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError as e:
+            print("Issue decoding JSON response:", e)
+            print(content)
+            raise Exception("Failed to decode JSON response" + str(e))
  
     total_rating = result.get("Total rating", 0)
     reason = result.get("Reason", "")
@@ -292,7 +306,7 @@ def get_scores_for_queries(queries_data: dict, queue_manager: QueueManager) -> D
         Dict[str, dict]: A dictionary mapping each query ID to its respective
         scoring result and associated details.
     """
-    scores_data = {}
+    scores_data = {"scores": {}}
     
     time_list = []
     while True:
@@ -311,10 +325,10 @@ def get_scores_for_queries(queries_data: dict, queue_manager: QueueManager) -> D
         end_time = time.time()
         total_time = end_time - start_time
 
-        time_list.append(round(total_time, 2))
+        time_list.append(round(total_time / 2, 2))
 
         # add the scores
-        scores_data.update({"scores": scores})
+        scores_data["scores"].update(scores)
 
         query_ids = list(queries_data.keys())
         
@@ -328,6 +342,9 @@ def get_scores_for_queries(queries_data: dict, queue_manager: QueueManager) -> D
         
     print("Avg queue time: ", time_list)
     scores_data["avg_queue_time"] = round(sum(time_list) / len(time_list), 2)
+
+    print("\nScores data: ")
+    pprint(scores_data)
 
     return scores_data
 

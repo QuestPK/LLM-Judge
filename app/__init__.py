@@ -1,28 +1,38 @@
 from flask import Flask
-from flask_pymongo import PyMongo
+from flask import Blueprint
+from flask_cors import CORS
+
 from app.config import Config
+from app.extensions import mongo, api
+from app.main.routes import register_namespaces
 
-mongo = PyMongo()
-
-def create_app():
+def create_app() -> Flask:
+    """Create the Flask application and initialize the configuration."""
     app = Flask(__name__)
 
-    # Load config
     app.config.from_object(Config)
 
+    # Initialize MongoDB
     mongo.init_app(app)
 
-    @app.route('/')
-    def home():
-        return """
-        <h2>Hi, home page! Version: v1.1.0</h2>
-        <br>
-        <a href="/api-docs" target="_blank">View API Documentation</a>
-        """
-    
-    with app.app_context():
-        # Import and register blueprints
-        from app.main import routes
-        app.register_blueprint(routes.main_bp)
+    # Test MongoDB Connection
+    try:
+        with app.app_context():  # Ensure we are within the application context
+            mongo.db.command("ping")  # Perform a simple ping test
+            print("✅ Successfully connected to MongoDB.")
+    except Exception as e:
+        print("❌ Error connecting to MongoDB:", e)
+        raise  # Stop the application if MongoDB is not reachable
 
-        return app
+    # Create the Blueprint for the main API
+    main_bp = Blueprint("api", __name__)
+    
+    # Initialize the Flask-RESTx API
+    api.init_app(main_bp)
+    register_namespaces(api)
+
+    # Register the Blueprint with the application
+    app.register_blueprint(main_bp)
+
+    CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+    return app

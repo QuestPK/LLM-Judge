@@ -158,3 +158,84 @@ baseline: Object-Oriented Programming (OOP) is a programming paradigm based on t
 current: Object-Oriented Programming is a way of organizing code using objects. It includes key concepts like encapsulation and inheritance to make code reusable.
 """
 # score - 3
+
+# =============================================================================
+# PET AI CARE RAGBOT
+{
+    "1": "What are the symptoms and treatment options for an abscess in dogs?",
+    "2": "How does acupuncture benefit dogs, and what conditions can it help treat?",
+    "3": "What are the signs of Addison’s disease in dogs, and how is it managed?",
+    "4": "How can pet owners safely administer oral medication to their dogs?", 
+    "5": "What are the different types of aggression in dogs and their causes?"
+}
+
+
+# add qna
+# {
+#   "project_id": "9445",
+#   "qa_data": {
+#     "qa_set": [
+#       {
+#         "id": 1,
+#         "question": "What are the symptoms and treatment options for an abscess in dogs?",
+#         "answer": "Symptoms of an abscess in dogs include painful skin swelling or a draining sore, fever, lethargy, loss of appetite, and reluctance to move the affected area. For treatment, a veterinarian typically needs to anesthetize the dog and then surgically lance and drain the abscess. The area is clipped of fur, disinfected, and flushed with a solution like hydrogen peroxide and water. Oral antibiotics are usually prescribed as well. At home, the incision should be rinsed daily with a solution of hydrogen peroxide and water to aid healing."
+#       },
+#       {
+#         "id": 2,
+#         "question": "How does acupuncture benefit dogs, and what conditions can it help treat?",
+#         "answer": "Acupuncture offers several benefits for dogs, primarily due to its lack of side effects. It can release neurochemicals or endorphins in the brain that cause pain relief. This therapy is used to help manage a variety of conditions in pets, including: - Arthritis - Reproductive disorders - Back and musculoskeletal problems - Skin conditions like allergies - Pain relief - Neurological issues Acupuncture is considered an integral part of veterinary medicine, and its benefits are recognized in improving the overall well-being of pets."
+#       },
+#       {
+#         "id": 3,
+#         "question": "What are the signs of Addison’s disease in dogs, and how is it managed?",
+#         "answer": "The signs of Addison's disease in dogs include loss of appetite, weakness, vomiting, slow heart rate, diarrhea leading to dehydration, increased thirst and urination, and in severe cases, shock, coma, and death. Early symptoms can be subtle, such as intermittent loss of appetite, weakness, and increased thirst and urination, and they may become apparent during stressful events. Management involves addressing shock with fluid therapy and replacing hormones. There is no home care, but prevention includes monthly injections or daily oral hormone replacement once diagnosed. Reducing the dog's stress and using daily prednisone during stressful times can also be helpful."
+#       },
+#       {
+#         "id": 4,
+#         "question": "How can pet owners safely administer oral medication to their dogs?",
+#         "answer": "Safe methods for pet owners to administer oral medication to their dogs include: 1. **Using Treats:** Hide the medication in a treat to encourage your dog to swallow it. You can use a hunk of cheese, a dab of peanut butter, or any food your dog will eat in one swallow. However, check with your veterinarian first to ensure the medication can be safely mixed with the chosen food. 2. **Liquid and Paste Medications:** These are typically flavored to make them more acceptable to dogs. Use an eye dropper, syringe, or squeeze bottle to administer the medication. Tip back your dog's head, insert the applicator into the corner of his mouth, and squirt the medication into his cheek. Keep his mouth closed to ensure he swallows it. 3. **Crushing Pills:** If the medication is not time-release and can be crushed, powder the pill using the back of a spoon and mix it with a strong-tasting treat to mask the flavor. Avoid mixing medication in the whole bowl of food, as the dog may not eat all the food at once, leading to incomplete dosing. Always consult with your veterinarian when in doubt to ensure the method used is appropriate for the specific medication."
+#       }
+#     ],
+#     "set_id": 78
+#   }
+# }
+
+# Sample Qna Set 1
+# {
+#   "project_id": "786",
+#   "qa_data": {
+#     "qa_set": [
+#       {
+#         "id": 1,
+#         "question": "What are the symptoms and treatment options for an abscess in dogs?",
+#         "answer": "Symptoms of an abscess in dogs include painful skin swelling or a draining sore, fever, lethargy, loss of appetite, and reluctance to move the affected area. For treatment, a veterinarian typically needs to anesthetize the dog and then surgically lance and drain the abscess. The area is clipped of fur, disinfected, and flushed with a solution like hydrogen peroxide and water. Oral antibiotics are usually prescribed as well. At home, the incision should be rinsed daily with a solution of hydrogen peroxide and water to aid healing."
+#       },
+#       {
+#         "id": 2,
+#         "question": "How does acupuncture benefit dogs, and what conditions can it help treat?",
+#         "answer": "Acupuncture offers several benefits for dogs, primarily due to its lack of side effects. It can release neurochemicals or endorphins in the brain that cause pain relief. This therapy is used to help manage a variety of conditions in pets, including: - Arthritis - Reproductive disorders - Back and musculoskeletal problems - Skin conditions like allergies - Pain relief - Neurological issues Acupuncture is considered an integral part of veterinary medicine, and its benefits are recognized in improving the overall well-being of pets."
+#       }
+#     ],
+#     "set_id": 78
+#   }
+# }
+
+# Sample Qna Set 2
+# {
+#   "project_id": "786",
+#   "qa_data": {
+#     "qa_set": [
+#       {
+#         "id": 1,
+#         "question": "What are the symptoms and treatment options for an abscess in dogs?",
+#         "answer": "For an abscess in dogs, the symptoms often include: • A painful, swollen area on the skin that may drain pus or have an open, sore appearance. • Signs of discomfort such as reluctance to move the affected area. • Systemic symptoms like fever (commonly above 102.5°F), lethargy, and loss of appetite. Treatment options generally involve veterinary intervention and can include: • Anesthesia for the dog, as abscesses are very painful. • Clipping the fur around the swollen area and disinfecting it with a surgical scrub solution (like betadine). • Lancing the abscess to drain the infection and flushing it with a solution (often a mix of hydrogen peroxide and water). • Leaving the incision open to allow it to heal from the inside out, and in some cases, placing a drain or “wick” to assist with ongoing drainage. • Prescription of oral antibiotics to help fight the infection. In addition to these standard treatments, a warm, moist compress may be applied as first aid until veterinary care is available, and supportive nutrition and care can help the dog recover more comfortably."
+#       },
+#       {
+#         "id": 2,
+#         "question": "How does acupuncture benefit dogs, and what conditions can it help treat?",
+#         "answer": "Acupuncture benefits dogs by stimulating specific points that trigger the release of neurochemicals or endorphins in the brain, which in turn provide pain relief and help promote overall balance in the body. One of its major advantages is that it generally causes few or no side effects. This makes it a particularly appealing supportive treatment in veterinary medicine. Some of the conditions that acupuncture can help treat in dogs include: • Seizures – Acupuncture has been used historically to manage seizures when conventional treatments have not been effective. • Pain and arthritis – By releasing natural pain-relieving chemicals, acupuncture can alleviate chronic pain and improve joint function in conditions like arthritis. • Musculoskeletal problems – It can address issues with the back and other structures, helping to relieve discomfort and improve mobility. • Reproductive disorders – It may support treatment plans for certain reproductive challenges. • Skin conditions – Dogs suffering from allergies or other dermatological issues may also benefit. • Neurological problems – The overall balancing effects can help with various neurological conditions. Overall, the therapy is often integrated into broader treatment plans, especially when owners are looking for a complementary or supportive approach to their pet’s care. If acupuncture is recommended, a veterinarian trained or certified in veterinary acupuncture should perform the treatment, or they may refer you to a specialist with additional training in this technique."
+#       }
+#     ],
+#     "set_id": 78
+#   }
+# }

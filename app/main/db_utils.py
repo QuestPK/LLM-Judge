@@ -248,7 +248,7 @@ def add_qa(key_token: str, project_identifier: str, qa_data: dict) -> None:
         print(f"An error occurred while adding QA: {e}")
         raise Exception(f"Failed to add QA: {e}")
 
-def update_baseline(key_token: str, project_identifier: str, set_id: str) -> None:
+def update_baseline(key_token: str, project_identifier: str, set_id: int) -> None:
     """
     Updates the baseline QA set for a specific project.
 
@@ -481,11 +481,11 @@ def compare_qa_sets(key_token: str, project_identifier: str, current_set_id: str
             "key-token" : key_token
         }
 
-        # print("Payload:")
-        # pprint(payload)
+        print("Payload:")
+        pprint(payload)
 
-        # print("Headers")
-        # print(headers)
+        print("Headers")
+        print(headers)
 
         scores_data = post_score_for_queries(payload, headers=headers)
 
@@ -597,6 +597,75 @@ def get_set_ids(key_token: str, project_identifier: str) -> list[dict]:
     ]
 
     return set_ids
+
+def get_project_ids(key_token: str) -> list[dict]:
+    """
+    Retrieve all project IDs and their data for a given user.
+
+    Args:
+        key_token (str): User identifier.
+
+    Returns:
+        List[Dict]: A list of dictionaries containing the project IDs and their corresponding project data.
+    """
+    # Find user data by key_token
+    user_data = mongo.db.qa_data.find_one({"key_token": key_token})
+
+    if not user_data:
+        raise ValueError(f"No user found for: {key_token}")
+
+    projects = user_data.get("projects", {})
+
+    if not projects:
+        raise ValueError(f"No projects found for user: {key_token}")
+
+    # Create a list of dictionaries containing the project IDs and their corresponding project data
+    project_ids = [
+        {
+            "project_id": project_id,  # Project ID
+            "project_name": project.get("project_name", "-"),  # Project name
+            "qa_sets": project.get("qa_sets", [])  # QA sets for the project
+        }
+        for project_id, project in projects.items()
+    ]
+
+    return project_ids
+
+def get_specific_project_details(key_token: str, project_identifier: str) -> dict:
+    """ 
+    Retrieve the details of a specific project for a given user.
+
+    Args:
+        key_token (str): User identifier.
+        project_identifier (str): Either the project ID or project name.
+
+    Returns:
+        Dict: A dictionary containing the project details.
+    """
+    # Find user data by key_token
+    user_data = mongo.db.qa_data.find_one({"key_token": key_token})
+
+    if not user_data:  
+        raise ValueError(f"No user found for: {key_token}")
+
+    projects = user_data.get("projects", {})
+
+    if not projects:
+        raise ValueError(f"No projects found for user: {key_token}")
+
+    # Identify the correct project
+    project_key = None
+    for proj_id, project in projects.items():
+        if proj_id == project_identifier or project.get("project_name") == project_identifier:
+            project_key = proj_id
+            break
+
+    if not project_key:
+        raise ValueError(f"Project '{project_identifier}' not found.")
+
+    project = projects[project_key]
+
+    return project
 
 def create_project(key_token: str, project_name: str) -> dict:
     """
@@ -717,3 +786,121 @@ def update_project_name(key_token: str, project_id: str, project_name: str) -> N
         {"key_token": key_token},
         {"$set": {"projects": user_data["projects"]}}
     )
+
+def delete_qa_set(key_token: str, project_identifier: str, set_id: int) -> None:
+    """
+    Delete a QA set for a user unless it's a baseline.
+
+    Args:
+        key_token (str): User identifier.
+        project_identifier (str): Either the project ID or project name.
+        set_id (int): ID of the QA set to delete.
+
+    Raises:
+        ValueError: If the user, project, or QA set is not found, or if the set is a baseline.
+    """
+    # Fetch user data
+    user_data = mongo.db.qa_data.find_one({"key_token": key_token})
+    if not user_data:
+        print("No user data found for key_token:", key_token)
+        raise ValueError(f"User not found!")
+
+    # Fetch project data
+    project_to_update = user_data.get("projects", {}).get(project_identifier)
+    if not project_to_update:
+        raise ValueError(f"Project '{project_identifier}' not found for user.")
+
+    # Find the QA set
+    for qa_set in project_to_update["qa_sets"]:
+        if qa_set["set_id"] == set_id:
+            if qa_set.get("baseline", False):
+                raise ValueError(f"Baseline QA set cannot be deleted.")
+            
+            # Remove the QA set
+            project_to_update["qa_sets"] = [
+                s for s in project_to_update["qa_sets"] if s["set_id"] != set_id
+            ]
+
+            # Update the database only if deletion occurs
+            mongo.db.qa_data.update_one(
+                {"key_token": key_token},
+                {"$set": {"projects": user_data["projects"]}}
+            )
+            return
+
+    raise ValueError(f"QA set with ID {set_id} not found in project '{project_identifier}'.")
+
+def save_qa_scores(key_token: str, set_id: int, project_identifier: str, qa_scores: dict) -> None:
+    """Save the QA scores for a given set in a project for a specific user.
+
+    Args:
+        key_token (str): User identifier.
+        set_id (int): ID of the QA set to save scores for.
+        project_identifier (str): Either the project ID or project name.
+        qa_scores (dict): A dictionary of scores for the QA set. The keys are the question IDs and the values are the scores.
+
+    Raises:
+        ValueError: If the user, project or QA set is not found.
+    """
+    # Fetch user data
+    user_data = mongo.db.qa_data.find_one({"key_token": key_token})
+    if not user_data:
+        raise ValueError(f"No user data found for key_token: {key_token}")
+
+    # Check if the project exists for the user
+    project_data = user_data.get("projects", {}).get(project_identifier)
+    if not project_data:
+        raise ValueError(f"Project '{project_identifier}' not found for user.")
+
+    # Get the QA sets list
+    qa_sets_list = project_data.get("qa_sets", [])
+    
+    # Locate the specific QA set by its set_id
+    for qa_set in qa_sets_list:
+        if qa_set.get("set_id") == set_id:
+            # Update the QA set with the scores
+            qa_set["scores"] = qa_scores
+            break
+    else:
+        raise ValueError(f"Set does not exist in this project.")
+    
+    # Save updated QA sets back to the database
+    mongo.db.qa_data.update_one(
+        {"key_token": key_token},
+        {"$set": {f"projects.{project_identifier}.qa_sets": qa_sets_list}}
+    )
+
+def get_set_scores(key_token: str, set_id: int, project_id: str) -> dict:
+    """
+    Retrieve scores for a specific QA set within a project for a user.
+
+    Args:
+        key_token (str): User identifier.
+        set_id (int): ID of the QA set.
+        project_id (str): ID of the project.
+
+    Returns:
+        dict: A dictionary containing the scores of the QA set.
+
+    Raises:
+        ValueError: If the user, project, or QA set is not found.
+    """
+    # Fetch user data from the database using the key_token
+    user_data = mongo.db.qa_data.find_one({"key_token": key_token})
+    if not user_data:
+        raise ValueError(f"No user data found for key_token: {key_token}")
+
+    # Retrieve project data for the given project_id
+    project_data = user_data.get("projects", {}).get(project_id)
+    if not project_data:
+        raise ValueError(f"Project '{project_id}' not found for user.")
+
+    # Iterate over QA sets within the project to find the specified set_id
+    qa_sets_data = project_data.get("qa_sets", [])
+    for qa_set in qa_sets_data:
+        if qa_set.get("set_id", 0) == set_id:
+            # Return the scores if the QA set is found
+            return qa_set.get("scores", {})
+
+    # Raise an error if no scores data is found for the given set_id
+    raise ValueError("No previous scores data found.")
