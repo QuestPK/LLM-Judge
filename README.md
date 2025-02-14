@@ -1,4 +1,7 @@
-# LLM-Judge App - Setup and API Usage
+
+
+# LLM-Judge Server setup and endpoints usage
+
 
 ## Prerequisites
 - Ensure that the `qwen2.5:14b` model is running.
