@@ -1,6 +1,6 @@
 
 
-# LLM-Judge Server setup and endpoints usage
+# LLM-Judge Server setup and endpoint usage
 
 ## Prerequisites
 - Ensure that `qwen2.5:14b` model is running.
