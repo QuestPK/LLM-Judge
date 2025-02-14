@@ -1,4 +1,9 @@
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
 class Config:
     DEBUG = True
-    # MONGO_URI = "mongodb://localhost:27017/Judgedb"
-    MONGO_URI = "mongodb+srv://dbUser:dbUser@cluster0.nef1k.mongodb.net/Judgedb?retryWrites=true&w=majority"
+    MONGO_URI = os.getenv("MONGO_URI")  # Load from .env
